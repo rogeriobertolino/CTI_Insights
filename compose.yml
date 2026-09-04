@@ -1,0 +1,36 @@
+services:
+  frontend:
+    build: .
+    ports: ["5173:80"]
+    depends_on:
+      - backend
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: cti_insights
+      POSTGRES_USER: cti
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cti_dev}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cti -d cti_insights"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/cti_insights
+      DATABASE_USER: cti
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-cti_dev}
+      PYTHON_EXECUTABLE: python3
+      PYTHON_SCRIPT: /app/python/analyze.py
+      CORS_ORIGIN: http://localhost:5173
+    ports: ["8080:8080"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+volumes:
+  postgres_data:

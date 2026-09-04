@@ -9,6 +9,14 @@ dist/
 .env.*
 !.env.example
 
+# Python e dados locais
+.venv/
+__pycache__/
+*.pyc
+
+# Java
+backend/target/
+
 # Logs
 *.log
 npm-debug.log*

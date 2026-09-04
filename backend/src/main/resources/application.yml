@@ -1,0 +1,25 @@
+server:
+  port: ${PORT:8080}
+  tomcat:
+    max-swallow-size: 20MB
+spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/cti_insights}
+    username: ${DATABASE_USER:cti}
+    password: ${DATABASE_PASSWORD:cti}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+management:
+  endpoints.web.exposure.include: health,info
+cti:
+  python:
+    executable: ${PYTHON_EXECUTABLE:python}
+    script: ${PYTHON_SCRIPT:../python/analyze.py}
+  cors:
+    origin: ${CORS_ORIGIN:http://localhost:5173}
