@@ -22,7 +22,7 @@ const routes = [
   {
     path: '/app',
     component: AppLayout,
-    redirect: '/app/upload',
+    redirect: '/app/graficos',
     children: [
       { path: 'upload', name: 'upload', component: UploadView },
       { path: 'relatorios', name: 'relatorios', component: RelatoriosView },

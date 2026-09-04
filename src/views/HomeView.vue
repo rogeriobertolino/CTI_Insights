@@ -1,7 +1,10 @@
 <template>
-  <main>
-    <h1>CTI Insights</h1>
-    <p>Visualize e analise seus dados com mais clareza.</p>
-    <RouterLink to="/login">Entrar</RouterLink>
-  </main>
+  <div class="landing">
+    <header><RouterLink class="brand-light" to="/"><span>CTI</span><b>CTI Insights</b></RouterLink><nav><a href="#solucao">Solução</a><a href="#processo">Como funciona</a><a href="#seguranca">Segurança</a></nav><RouterLink class="btn dark" to="/login">Acessar plataforma</RouterLink></header>
+    <main><section class="hero"><div><p class="kicker">INTELIGÊNCIA COMERCIAL ORIENTADA POR DADOS</p><h1>Transforme dados<br>em <em>decisões.</em></h1><p class="lead">Centralize, trate e analise sua carteira comercial com segurança, rastreabilidade e uma visão clara do que merece atenção.</p><div class="actions"><RouterLink class="btn primary" to="/login">Começar agora →</RouterLink><a href="#solucao">Conhecer a solução ↘</a></div><div class="trust">✓ Dados rastreáveis　✓ LGPD by design　✓ Decisões explicáveis</div></div><div class="hero-art"><div class="preview"><small>VISÃO EXECUTIVA</small><h3>Carteira comercial</h3><div class="preview-kpis"><p><span>Clientes ativos</span><b>1.248</b><em>+8,4%</em></p><p><span>Qualidade da base</span><b>94,2%</b><em>+2,1%</em></p></div><h4>Evolução da carteira</h4><svg viewBox="0 0 500 150" aria-label="Evolução crescente da carteira"><path d="M0 125 C70 118 70 92 140 100 S230 75 285 80 S360 45 415 54 S465 22 500 30"/></svg><div class="legend">● Tecnologia 32%　● Indústria 27%　● Serviços 21%</div></div><aside>↗ <b>+106 clientes</b><small>nos últimos 90 dias</small></aside></div></section>
+    <section id="solucao" class="features"><p class="kicker">DO ARQUIVO À ESTRATÉGIA</p><h2>Uma base confiável para decisões melhores.</h2><div><article><b>01</b><h3>Importação confiável</h3><p>Receba planilhas XLSX, valide a estrutura e acompanhe cada lote com rastreabilidade.</p></article><article><b>02</b><h3>Qualidade explicável</h3><p>Identifique ausências, conflitos e duplicidades sem apagar o dado original.</p></article><article><b>03</b><h3>Insights acionáveis</h3><p>Transforme dados curados em indicadores, relatórios e oportunidades comerciais.</p></article></div></section>
+    <section id="processo" class="process"><div><p class="kicker">FLUXO GOVERNADO</p><h2>Clareza em cada etapa do dado.</h2><p>Da entrada da planilha à publicação, cada transformação mantém origem, regra e responsável.</p></div><ol><li><b>01</b><span><strong>Importe</strong>Envie sua planilha com segurança.</span></li><li><b>02</b><span><strong>Valide</strong>Revise qualidade e conflitos.</span></li><li><b>03</b><span><strong>Decida</strong>Explore indicadores e gere ações.</span></li></ol></section>
+    <section id="seguranca" class="cta"><p>PRONTO PARA COMEÇAR?</p><h2>Seus dados comerciais,<br>finalmente sob controle.</h2><RouterLink class="btn primary" to="/login">Acessar plataforma →</RouterLink></section></main>
+    <footer class="landing-footer">© 2026 CTI Insights <span>Privacidade · Segurança · Acessibilidade</span></footer>
+  </div>
 </template>

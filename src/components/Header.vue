@@ -1,18 +1,6 @@
 <template>
   <header class="app-header">
-    <strong>CTI Insights</strong>
-    <span>Usuário conectado</span>
+    <div><small>VISÃO GERAL</small><strong>Central de inteligência comercial</strong></div>
+    <div class="user"><button aria-label="Notificações">●</button><span class="avatar">RB</span><p><b>Rogério Bertolino</b><small>Administrador</small></p></div>
   </header>
 </template>
-
-<style scoped>
-.app-header {
-  align-items: center;
-  background: #ffffff;
-  border-bottom: 1px solid #e5e7eb;
-  display: flex;
-  height: 64px;
-  justify-content: space-between;
-  padding: 0 24px;
-}
-</style>
