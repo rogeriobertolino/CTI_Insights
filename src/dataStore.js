@@ -1,6 +1,6 @@
 import { reactive } from 'vue'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1'
+const API_URL = import.meta.env.VITE_API_URL || '/api/v1'
 
 export const dataStore = reactive({
   analysis: null,
@@ -9,7 +9,12 @@ export const dataStore = reactive({
 })
 
 async function request(path, options) {
-  const response = await fetch(`${API_URL}${path}`, options)
+  let response
+  try {
+    response = await fetch(`${API_URL}${path}`, options)
+  } catch {
+    throw new Error('Não foi possível conectar à API. Verifique se o Docker e o backend estão em execução e recarregue a página.')
+  }
   const body = await response.json().catch(() => ({}))
   if (!response.ok) throw new Error(body.message || `Falha na API (${response.status}).`)
   return body

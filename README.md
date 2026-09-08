@@ -30,6 +30,29 @@ docker compose up --build
 
 A API estará em `http://localhost:8080`, o PostgreSQL na rede interna do Compose e o front-end em `http://localhost:5173`. O Nginx encaminha `/api` ao Spring Boot.
 
+### Desenvolvimento no Windows
+
+Com o Docker Desktop em execução, configure `POSTGRES_PASSWORD` no arquivo local `.env` antes da primeira inicialização. O banco usa um volume persistente; alterar essa variável depois não altera a senha de um banco já criado.
+
+Para usar o front-end pelo Vite e o backend pelo Docker:
+
+```powershell
+docker compose up -d --build backend postgres
+npm.cmd run dev
+```
+
+Não inicie o serviço `frontend` do Compose enquanto o Vite estiver usando a porta 5173. Java 25 e as dependências Python são instalados nas imagens, sem necessidade de instalação local. O PostgreSQL fica acessível à API pela rede interna do Docker.
+
+Verifique os serviços e a saúde da API:
+
+```powershell
+docker compose ps
+Invoke-RestMethod http://localhost:8080/actuator/health
+docker compose logs --tail=100 backend
+```
+
+Para parar os contêineres preservando o banco, use `docker compose stop`.
+
 ## Execução sem Docker
 
 1. Crie o banco PostgreSQL `cti_insights`.

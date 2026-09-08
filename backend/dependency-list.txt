@@ -1,0 +1,8 @@
+
+The following files have been resolved:
+   org.springframework.boot:spring-boot-starter-web:jar:3.5.16:compile -- module spring.boot.starter.web [auto]
+   org.springframework.boot:spring-boot-starter-data-jpa:jar:3.5.16:compile -- module spring.boot.starter.data.jpa [auto]
+   org.springframework.boot:spring-boot-starter-validation:jar:3.5.16:compile -- module spring.boot.starter.validation [auto]
+   org.springframework.boot:spring-boot-starter-actuator:jar:3.5.16:compile -- module spring.boot.starter.actuator [auto]
+   org.postgresql:postgresql:jar:42.7.11:runtime -- module org.postgresql.jdbc [auto]
+
