@@ -7,7 +7,7 @@ import Sidebar from '../components/Sidebar.vue'
   <div class="app-layout">
     <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
     <Sidebar />
-    <div class="app-shell"><Header /><main id="conteudo" class="app-content"><RouterView /></main></div>
+    <div class="app-shell"><Header /><nav class="mobile-nav" aria-label="Validação de planilha"><RouterLink to="/app/upload">Validar planilha</RouterLink><RouterLink to="/app/relatorios">Relatório</RouterLink></nav><main id="conteudo" class="app-content"><RouterView /></main></div>
   </div>
 </template>
 

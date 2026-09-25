@@ -1,23 +1,55 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { clearData, dataStore, uploadWorkbook } from '../dataStore.js'
+import { usePlanilhaStore } from '../stores/planilha.js'
+import { criarArquivoExemplo, baixarModelo } from '../utils/modeloPlanilha.js'
 
-const file=ref(null),status=ref('idle'),error=ref(''),router=useRouter()
-const size=computed(()=>file.value?`${(file.value.size/1048576).toFixed(2)} MB`:'')
-const select=value=>{if(!value)return;file.value=value;error.value='';status.value=value.name.toLowerCase().endsWith('.xlsx')&&value.size<=20*1048576?'ready':'invalid'}
-const analyze=async()=>{status.value='processing';try{await uploadWorkbook(file.value);status.value='done'}catch(e){error.value=e.message;status.value='error'}}
-const reset=()=>{file.value=null;status.value='idle';error.value='';clearData()}
+const store = usePlanilhaStore()
+const router = useRouter()
+const arquivo = ref(null)
+const entrada = ref(null)
+const sobreArea = ref(false)
+const tamanho = computed(() => arquivo.value ? `${(arquivo.value.size / 1024).toFixed(1)} KB` : '')
+
+function selecionar(file) {
+  if (!file || store.carregando) return
+  arquivo.value = file
+  store.limpar()
+}
+function soltar(event) {
+  sobreArea.value = false
+  selecionar(event.dataTransfer.files[0])
+}
+async function analisar() {
+  if (!arquivo.value || store.carregando) return
+  if (await store.importarArquivo(arquivo.value)) router.push('/app/relatorios')
+}
+async function demonstrar() {
+  selecionar(criarArquivoExemplo(true))
+  await analisar()
+}
+function limpar() {
+  arquivo.value = null
+  if (entrada.value) entrada.value.value = ''
+  store.limpar()
+}
 </script>
 
 <template>
-  <section class="page">
-    <div class="page-head"><div><p class="kicker">NOVA IMPORTAÇÃO</p><h1>Importar dados</h1><span>Envie uma planilha para o pipeline integrado de análise.</span></div><b>EXCEL → JAVA → PYTHON → POSTGRESQL</b></div>
-    <div class="steps"><b>① Upload Vue</b><i></i><span>② API Java</span><i></i><span>③ Análise Python</span><i></i><span>④ Persistência</span></div>
+  <section class="page validation-page">
+    <div class="page-head"><div><p class="kicker">QUALIDADE DOS DADOS</p><h1>Validar planilha</h1><span>Encontre problemas antes de utilizar os dados dos seus clientes.</span></div><RouterLink v-if="store.validadoEm" class="btn outline" to="/app/relatorios">Ver último relatório →</RouterLink></div>
+    <ol class="validation-steps" aria-label="Etapas da validação"><li class="current"><b>1</b> Escolher Excel</li><li><b>2</b> Validar dados</li><li><b>3</b> Consultar relatório</li></ol>
     <div class="upload-grid">
-      <article class="panel upload-panel"><h2>⇧　Selecione o arquivo XLSX</h2><p>O Spring Boot recebe o arquivo, aciona o Python e persiste o resultado no PostgreSQL.</p><label class="dropzone" @dragover.prevent @drop.prevent="select($event.dataTransfer.files[0])"><input type="file" accept=".xlsx" @change="select($event.target.files[0])"><b>⇧</b><strong>Arraste sua planilha aqui</strong><span>ou <u>selecione um arquivo</u></span><small>XLSX · até 20 MB</small></label><div v-if="file" class="file"><b>X</b><span><strong>{{ file.name }}</strong><small>{{ size }} · {{ status==='done'?'Análise persistida':status==='processing'?'Processando no servidor...':'Pronto para enviar' }}</small><progress v-if="status==='processing'"></progress></span><button @click="reset">×</button></div><p v-if="status==='invalid'" class="error">Envie um XLSX de até 20 MB.</p><p v-if="error" class="error">{{ error }}</p><footer><button class="btn outline" @click="reset">Limpar</button><button v-if="status!=='done'" class="btn primary" :disabled="status!=='ready'" @click="analyze">{{ status==='processing'?'Analisando...':'Enviar e analisar →' }}</button><button v-else class="btn primary" @click="router.push('/app/graficos')">Ver dashboard →</button></footer></article>
-      <aside class="panel help"><p class="kicker">PIPELINE</p><h2>Tratamento governado</h2><ol><li><b>01</b><span><strong>Spring Boot</strong>Valida o arquivo e coordena o lote.</span></li><li><b>02</b><span><strong>Python</strong>Padroniza e calcula métricas.</span></li><li><b>03</b><span><strong>PostgreSQL</strong>Persiste os resultados consolidados.</span></li></ol><aside><b>Privacidade e LGPD</b><p>O arquivo temporário é excluído após o processamento.</p></aside></aside>
+      <article class="panel upload-panel">
+        <h2>Selecione sua planilha</h2><p class="validation-copy">A análise acontece neste navegador. O arquivo e os resultados ficam disponíveis somente durante esta sessão da página.</p>
+        <label class="dropzone" :class="{ 'is-dragging': sobreArea }" @dragover.prevent="sobreArea = true" @dragleave.prevent="sobreArea = false" @drop.prevent="soltar"><input ref="entrada" type="file" accept=".xlsx" :disabled="store.carregando" aria-label="Selecionar planilha Excel" @change="selecionar($event.target.files[0])"><b aria-hidden="true">⇧</b><strong>Arraste um arquivo Excel aqui</strong><span>ou <u>escolha no seu computador</u></span><small>.xlsx · até 5 MB · até 10.000 registros</small></label>
+        <div v-if="arquivo" class="file"><span class="excel-icon" aria-hidden="true">X</span><span><strong>{{ arquivo.name }}</strong><small>{{ tamanho }}</small></span><button class="btn outline" :disabled="store.carregando" aria-label="Remover arquivo" @click="limpar">Remover</button></div>
+        <p v-if="store.erroArquivo" class="validation-alert" role="alert">{{ store.erroArquivo }}</p><p v-if="store.carregando" class="validation-copy" role="status">Lendo a planilha e verificando os registros…</p>
+        <footer><button class="btn outline" :disabled="store.carregando || (!arquivo && !store.validadoEm)" @click="limpar">Limpar</button><button class="btn primary" :disabled="!arquivo || store.carregando" @click="analisar">{{ store.carregando ? 'Validando…' : 'Validar e ver relatório →' }}</button></footer>
+      </article>
+      <aside class="panel validation-guide"><p class="kicker">PREPARE SEU ARQUIVO</p><h2>Modelo da planilha</h2><p>Use a primeira aba, com os cabeçalhos na primeira linha preenchida.</p><dl><dt>Obrigatórios</dt><dd><code>codigo</code>, <code>nome</code> e <code>email</code></dd><dt>Opcionais</dt><dd><code>status</code>: Ativo, Inativo ou Pendente.<br><code>nivel</code>: A, B ou C.</dd></dl><p>O código deve ser único. Use nomes com maiúsculas e minúsculas, e e-mails em minúsculas. Evite espaços nas extremidades e espaços repetidos.</p><button class="btn outline" :disabled="store.carregando" @click="baixarModelo">↓ Baixar modelo Excel</button><button class="btn text-button" :disabled="store.carregando" @click="demonstrar">Testar exemplo com problemas →</button></aside>
     </div>
-    <article v-if="dataStore.analysis" class="panel recent"><p class="kicker">RESULTADO PERSISTIDO</p><h2>{{ dataStore.analysis.fileName }}</h2><div class="report-summary"><p>Linhas analisadas<b>{{ dataStore.analysis.totalRows }}</b></p><p>Colunas<b>{{ dataStore.analysis.headers?.length||0 }}</b></p><p>Qualidade<b>{{ dataStore.analysis.quality.toFixed(1) }}%</b></p><aside>● Lote {{ dataStore.analysis.batchId }}</aside></div></article>
+    <article class="panel validation-rules"><h2>O que será verificado</h2><ul><li>Campos obrigatórios vazios</li><li>Espaços desnecessários</li><li>Códigos de cliente duplicados</li><li>E-mails inválidos</li><li>Códigos, status e níveis fora do padrão</li><li>Textos que precisam de padronização</li></ul><p class="validation-copy">Os valores originais são preservados. Linhas inteiramente vazias são ignoradas; os problemas indicam a linha real do Excel. Toda ocorrência torna o registro pendente de revisão.</p></article>
+    <p class="validation-copy">Precisa armazenar uma análise no servidor? <RouterLink to="/app/importacao-servidor">Acessar importação integrada</RouterLink>.</p>
   </section>
 </template>

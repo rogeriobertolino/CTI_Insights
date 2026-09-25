@@ -22,11 +22,13 @@ const routes = [
   {
     path: '/app',
     component: AppLayout,
-    redirect: '/app/graficos',
+    redirect: '/app/upload',
     children: [
       { path: 'upload', name: 'upload', component: UploadView },
       { path: 'relatorios', name: 'relatorios', component: RelatoriosView },
       { path: 'graficos', name: 'graficos', component: GraficosView },
+      { path: 'importacao-servidor', name: 'importacao-servidor', component: () => import('../views/ImportacaoServidorView.vue') },
+      { path: 'registros-servidor', name: 'registros-servidor', component: () => import('../views/RelatorioServidorView.vue') },
     ],
   },
   {

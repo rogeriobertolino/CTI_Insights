@@ -4,16 +4,22 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "start": "powershell -NoProfile -ExecutionPolicy RemoteSigned -File scripts/local.ps1 start",
+    "stop": "powershell -NoProfile -ExecutionPolicy RemoteSigned -File scripts/local.ps1 stop",
+    "status": "powershell -NoProfile -ExecutionPolicy RemoteSigned -File scripts/local.ps1 status",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --test"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
     "chart.js": "^4.5.0",
+    "pinia": "^4.0.3",
     "tailwindcss": "^4.3.3",
     "vue": "^3.5.40",
     "vue-chartjs": "^5.3.3",
-    "vue-router": "^4.6.4"
+    "vue-router": "^4.6.4",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.8",

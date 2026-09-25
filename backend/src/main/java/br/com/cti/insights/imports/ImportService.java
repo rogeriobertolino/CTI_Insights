@@ -10,14 +10,21 @@ import java.util.*;
 
 @Service
 public class ImportService {
-    private final ImportBatchRepository repository; private final ImportedRecordRepository records; private final PythonAnalysisService python; private final ObjectMapper mapper;
-    public ImportService(ImportBatchRepository repository,ImportedRecordRepository records,PythonAnalysisService python,ObjectMapper mapper){this.repository=repository;this.records=records;this.python=python;this.mapper=mapper;}
+    private final ImportBatchRepository repository; private final ImportedRecordRepository records; private final PythonAnalysisService python; private final ImportDomainService domain; private final ObjectMapper mapper;
+    public ImportService(ImportBatchRepository repository,ImportedRecordRepository records,PythonAnalysisService python,ImportDomainService domain,ObjectMapper mapper){this.repository=repository;this.records=records;this.python=python;this.domain=domain;this.mapper=mapper;}
     public Map<String,Object> process(MultipartFile file) throws Exception {
-        if(file.isEmpty()||file.getOriginalFilename()==null||!file.getOriginalFilename().toLowerCase().endsWith(".xlsx")) throw new IllegalArgumentException("Envie um arquivo XLSX válido.");
+        if(file.isEmpty()||file.getOriginalFilename()==null||!file.getOriginalFilename().toLowerCase().endsWith(".xlsx")) throw new ExcelInvalidoException("Envie um arquivo XLSX válido.");
         ImportBatch batch=repository.save(new ImportBatch(file.getOriginalFilename())); Path temp=Files.createTempFile("cti-", ".xlsx");
-        try { file.transferTo(temp); Map<String,Object> result=python.analyze(temp); List<Map<String,Object>> imported=(List<Map<String,Object>>)result.getOrDefault("records",List.of()); List<ImportedRecord> entities=new ArrayList<>(); for(int i=0;i<imported.size();i++)entities.add(new ImportedRecord(batch.getId(),i+2,mapper.writeValueAsString(imported.get(i)))); records.saveAll(entities); result.put("records",imported.subList(0,Math.min(imported.size(),1000))); long rows=((Number)result.getOrDefault("totalRows",0)).longValue(); double quality=((Number)result.getOrDefault("quality",0)).doubleValue(); batch.complete(rows,quality,mapper.writeValueAsString(result));repository.save(batch);return response(batch,result); }
+        try { file.transferTo(temp); Map<String,Object> result=python.analyze(temp); validateColumns(result); List<Map<String,Object>> imported=(List<Map<String,Object>>)result.getOrDefault("records",List.of()); List<ImportedRecord> entities=new ArrayList<>(); for(int i=0;i<imported.size();i++)entities.add(new ImportedRecord(batch.getId(),i+2,mapper.writeValueAsString(imported.get(i)))); records.saveAll(entities); domain.persistClients(imported); result.put("records",imported.subList(0,Math.min(imported.size(),1000))); long rows=((Number)result.getOrDefault("totalRows",0)).longValue(); double quality=((Number)result.getOrDefault("quality",0)).doubleValue(); batch.complete(rows,quality,mapper.writeValueAsString(result));repository.save(batch);return response(batch,result); }
         catch(Exception e){batch.fail();repository.save(batch);throw e;} finally{Files.deleteIfExists(temp);}
     }
     public Map<String,Object> latest() throws Exception { ImportBatch batch=repository.findFirstByStatusOrderByCreatedAtDesc("COMPLETED").orElseThrow(()->new IllegalStateException("Nenhuma análise disponível.")); Map<String,Object> result=mapper.readValue(batch.getAnalysisJson(),new TypeReference<>(){});return response(batch,result); }
     private Map<String,Object> response(ImportBatch batch,Map<String,Object> result){Map<String,Object> response=new LinkedHashMap<>(result);response.put("batchId",batch.getId());response.put("fileName",batch.getFileName());response.put("status",batch.getStatus());response.put("createdAt",batch.getCreatedAt());return response;}
+    private void validateColumns(Map<String,Object> result) {
+        Map<String,Object> columns=(Map<String,Object>)result.getOrDefault("columns",Map.of());
+        boolean hasClient=number(columns.get("clientCode"))>=0||number(columns.get("clientName"))>=0;
+        if(!hasClient) throw new ColunaObrigatoriaException("cliente ou código do cliente");
+        if(number(columns.get("segment"))<0) throw new ColunaObrigatoriaException("segmento");
+    }
+    private int number(Object value){return value instanceof Number number?number.intValue():-1;}
 }
