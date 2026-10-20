@@ -1,7 +1,6 @@
 import { reactive } from 'vue'
-import { requestApi } from './api.js'
+import { enviarPlanilha, buscarUltimaAnalise } from './services/analysis.js'
 
-const API_URL = import.meta.env.VITE_API_URL || '/api/v1'
 
 export const dataStore = reactive({
   analysis: null,
@@ -9,17 +8,12 @@ export const dataStore = reactive({
   error: '',
 })
 
-function request(path, options) {
-  return requestApi(`${API_URL.replace(/\/$/, '')}${path}`, options)
-}
 
 export async function uploadWorkbook(file) {
   dataStore.loading = true
   dataStore.error = ''
   try {
-    const form = new FormData()
-    form.append('file', file)
-    dataStore.analysis = await request('/imports', { method: 'POST', body: form })
+    dataStore.analysis = await enviarPlanilha(file)
     return dataStore.analysis
   } catch (error) {
     dataStore.error = error.message
@@ -34,7 +28,7 @@ export async function loadLatestAnalysis() {
   dataStore.loading = true
   dataStore.error = ''
   try {
-    dataStore.analysis = await request('/dashboard/latest')
+    dataStore.analysis = await buscarUltimaAnalise()
   } catch (error) {
     if (!/Nenhuma análise/.test(error.message)) dataStore.error = error.message
   } finally {

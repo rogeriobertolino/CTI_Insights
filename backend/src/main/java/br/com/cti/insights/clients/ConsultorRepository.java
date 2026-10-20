@@ -1,10 +1,13 @@
 package br.com.cti.insights.clients;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-
 import br.com.cti.insights.domain.Consultor;
 import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ConsultorRepository extends JpaRepository<Consultor, Long> {
-	Optional<Consultor> findByNome(String nome);
+  Optional<Consultor> findByNome(String nome);
+
+  Optional<Consultor> findFirstByNomeIgnoreCaseOrderByIdAsc(String nome);
+
+  Optional<Consultor> findByEmailIgnoreCase(String email);
 }

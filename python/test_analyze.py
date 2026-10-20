@@ -5,20 +5,40 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import pandas as pd
+from openpyxl import Workbook
 
-from analyze import find, main
+from analyze import find, main, parse_money
 
 
 class WorkbookAnalysisTests(unittest.TestCase):
     def analyze(self, columns):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "workbook.xlsx"
-            pd.DataFrame(columns).to_excel(path, index=False)
+            workbook = Workbook()
+            worksheet = workbook.active
+            worksheet.append(list(columns))
+            for row in zip(*columns.values()):
+                worksheet.append(row)
+            workbook.save(path)
+            workbook.close()
             output = io.StringIO()
             with contextlib.redirect_stdout(output):
                 main(path)
             return json.loads(output.getvalue())
+
+    def test_money_formats_and_single_row_statistics_are_finite(self):
+        self.assertEqual(parse_money("707,553.52"),707553.52)
+        self.assertEqual(parse_money("R$ 1.234,56"),1234.56)
+        self.assertIsNone(parse_money("1.2.3"))
+        result=self.analyze({"codigo_cliente":["1"],"nome_cliente":["Empresa 001"],"segmento":["Serviços"],"faturamento_mensal":[1234.56]})
+        self.assertEqual(result["revenueStatistics"]["total"],1234.56)
+        self.assertEqual(result["revenueStatistics"]["std"],0)
+
+    def test_quartiles_and_sample_standard_deviation(self):
+        result = self.analyze({"Cliente": ["A", "B", "C", "D"], "Faturamento": [10, 20, 30, 40]})
+        self.assertEqual(result["revenueStatistics"]["q1"], 17.5)
+        self.assertEqual(result["revenueStatistics"]["q3"], 32.5)
+        self.assertEqual(result["revenueStatistics"]["std"], 12.91)
 
     def test_exact_client_name_takes_priority_over_code_column(self):
         self.assertEqual(

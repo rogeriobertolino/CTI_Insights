@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: cti-insights-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_USER
+        sync: false
+      - key: DATABASE_PASSWORD
+        sync: false
+      - key: JWT_SECRET_BASE64
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: PYTHON_EXECUTABLE
+        value: python3
+      - key: PYTHON_SCRIPT
+        value: /app/python/analyze.py
+      - key: PYTHON_MODE
+        value: native
+      - key: PYTHON_TIMEOUT_SECONDS
+        value: "120"

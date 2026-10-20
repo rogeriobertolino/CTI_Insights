@@ -30,3 +30,9 @@ pnpm-debug.log*
 .idea/
 .DS_Store
 Thumbs.db
+
+# Relatórios e bases locais de ciência de dados
+analytics-python/saidas/
+analytics-python/graficos/
+analytics-python/dados/*
+!analytics-python/dados/.gitkeep

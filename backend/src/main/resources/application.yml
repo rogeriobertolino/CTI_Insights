@@ -1,5 +1,6 @@
 server:
   port: ${PORT:8080}
+  forward-headers-strategy: framework
   tomcat:
     max-swallow-size: 20MB
 spring:
@@ -9,7 +10,7 @@ spring:
     password: ${DATABASE_PASSWORD:cti}
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: ${DDL_AUTO:update}
     open-in-view: false
   servlet:
     multipart:
@@ -18,7 +19,13 @@ spring:
 management:
   endpoints.web.exposure.include: health,info
 cti:
+  jwt:
+    secret-base64: ${JWT_SECRET_BASE64:}
+    issuer: ${JWT_ISSUER:cti-insights}
+    expiration-seconds: ${JWT_EXPIRATION_SECONDS:1800}
   python:
+    mode: ${PYTHON_MODE:native}
+    image: ${PYTHON_IMAGE:cti-insights-analytics:local}
     executable: ${PYTHON_EXECUTABLE:python}
     script: ${PYTHON_SCRIPT:../python/analyze.py}
     timeout-seconds: ${PYTHON_TIMEOUT_SECONDS:120}

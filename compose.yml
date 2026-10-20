@@ -28,6 +28,9 @@ services:
       PYTHON_EXECUTABLE: python3
       PYTHON_SCRIPT: /app/python/analyze.py
       CORS_ORIGIN: http://localhost:5173
+      JWT_SECRET_BASE64: ${JWT_SECRET_BASE64:?Configure JWT_SECRET_BASE64 no arquivo .env}
+      JWT_EXPIRATION_SECONDS: ${JWT_EXPIRATION_SECONDS:-1800}
+      JWT_ISSUER: ${JWT_ISSUER:-cti-insights}
     ports: ["8080:8080"]
     depends_on:
       postgres:

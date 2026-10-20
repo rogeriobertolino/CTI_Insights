@@ -1,8 +1,9 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { usePlanilhaStore, TIPOS_ERRO } from '../stores/planilha.js'
+import { useUploadStore, TIPOS_ERRO } from '../stores/uploadStore.js'
+import PreviaPlanilha from '../components/PreviaPlanilha.vue'
 
-const store = usePlanilhaStore()
+const store = useUploadStore()
 const busca = ref('')
 const tipo = ref('')
 const pagina = ref(1)
@@ -27,6 +28,7 @@ watch(() => store.validadoEm, () => { pagina.value = 1; paginaRegistros.value = 
     <div class="page-head"><div><p class="kicker">RESULTADO DA VALIDAÇÃO</p><h1>Relatório da planilha</h1><span>Consulte os registros e os problemas encontrados em cada campo.</span></div><RouterLink class="btn primary" to="/app/upload">Validar outra planilha</RouterLink></div>
     <article v-if="!store.validadoEm" class="panel empty-state"><b>Nenhuma validação nesta sessão</b><p>Escolha uma planilha Excel para ver o relatório. Ao atualizar ou fechar a página, os dados temporários são apagados.</p><RouterLink class="btn primary" to="/app/upload">Selecionar planilha →</RouterLink></article>
     <template v-else>
+      <PreviaPlanilha />
       <div class="validation-file-summary"><div><span>Arquivo analisado</span><strong>{{ store.nomeArquivo }}</strong></div><div><span>Aba</span><strong>{{ store.nomeAba }}</strong></div><div><span>Validado em</span><strong>{{ dataValidacao }}</strong></div></div>
       <div class="kpis validation-kpis"><article><span>Total de registros</span><b>{{ store.totalRegistros }}</b><small>Linhas com dados</small></article><article><span>Registros válidos</span><b>{{ store.totalValidos }}</b><small>Sem ocorrências</small></article><article><span>Registros com erro</span><b>{{ store.totalComErro }}</b><small>Contados uma única vez por linha</small></article><article><span>Total de ocorrências</span><b>{{ store.totalErros }}</b><small>Uma linha pode ter vários problemas</small></article></div>
       <article class="panel"><div class="validation-section-head"><h2>Validações realizadas</h2><button class="btn outline" @click="store.validarDados()">Validar novamente</button></div><div class="validation-counts"><div v-for="item in store.errosPorTipo" :key="item.tipo"><span>{{ item.rotulo }}</span><b :class="{ 'has-issues': item.quantidade > 0 }">{{ item.quantidade }}</b></div></div><p class="validation-copy">As quantidades por tipo representam ocorrências. Um registro é válido somente quando não tem nenhuma ocorrência.</p></article>

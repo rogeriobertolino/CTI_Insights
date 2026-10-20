@@ -10,3 +10,14 @@ backend/.github
 .venv
 **/__pycache__
 *.log
+.runtime
+tmp
+output
+.agents
+.codex
+.aws
+docs
+analytics-python/saidas
+analytics-python/graficos
+analytics-python/dados
+

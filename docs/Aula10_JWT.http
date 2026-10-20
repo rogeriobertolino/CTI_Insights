@@ -1,0 +1,43 @@
+# Exemplos para a extensão REST Client do VS Code.
+# No Thunder Client, use os mesmos métodos, URLs e corpos.
+# Troque o email antes de repetir um cadastro.
+@baseUrl = http://127.0.0.1:8081
+@email = aluno-aula10@example.com
+@senha = Aluno12345
+
+### 1. Cadastro público: 201, perfil USER (sem senha na resposta)
+POST {{baseUrl}}/api/auth/cadastro
+Content-Type: application/json
+
+{"nome":"Aluno Aula 10","email":"{{email}}","senha":"{{senha}}"}
+
+### 2. Login: 403 enquanto PENDENTE; 200 depois de aprovado pelo administrador
+# @name login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{"email":"{{email}}","senha":"{{senha}}"}
+
+### 3a. Rota privada sem token: 401
+GET {{baseUrl}}/api/privado
+
+### 3b. Rota privada com JWT: 200
+GET {{baseUrl}}/api/privado
+Authorization: Bearer {{login.response.body.token}}
+
+### 4. Usuário autenticado, sem senha: 200
+GET {{baseUrl}}/api/auth/me
+Authorization: Bearer {{login.response.body.token}}
+
+### Permissão administrativa: 403 para USER; 200 para ADMIN
+GET {{baseUrl}}/api/admin
+Authorization: Bearer {{login.response.body.token}}
+
+### JWT inválido: 401
+GET {{baseUrl}}/api/privado
+Authorization: Bearer token-invalido
+
+### Logout: 204; o navegador remove o token localmente
+# JWTs já emitidos continuam válidos até expirar.
+POST {{baseUrl}}/api/auth/logout
+Authorization: Bearer {{login.response.body.token}}

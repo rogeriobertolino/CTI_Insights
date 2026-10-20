@@ -29,7 +29,7 @@ foreach ($field in @('DatabasePort', 'BackendPort', 'FrontendPort')) {
 
 $javaExecutable = [System.IO.Path]::GetFullPath((Join-Path $config.JavaHome 'bin\java.exe'))
 $pgCtl = Join-Path $config.PostgresBin 'pg_ctl.exe'
-$pythonExecutable = Join-Path $projectRoot '.venv\Scripts\python.exe'
+$pythonExecutable = if ($config.PSObject.Properties['PythonExecutable'] -and $config.PythonExecutable) { [System.IO.Path]::GetFullPath($config.PythonExecutable) } else { Join-Path $projectRoot '.venv\Scripts\python.exe' }
 $pythonScript = Join-Path $projectRoot 'python\analyze.py'
 $backendJar = Join-Path $projectRoot 'backend\target\cti-insights-api-0.1.0.jar'
 $viteScript = Join-Path $projectRoot 'node_modules\vite\bin\vite.js'
@@ -133,6 +133,22 @@ function Start-ManagedProcess([string]$Name, [string]$Executable, [string[]]$Arg
     }
 }
 
+function Get-JwtSecret {
+    if (-not [string]::IsNullOrWhiteSpace($env:JWT_SECRET_BASE64)) { return $env:JWT_SECRET_BASE64 }
+    $secretPath = Join-Path $configRoot 'jwt-secret.dpapi'
+    if (-not (Test-Path -LiteralPath $secretPath -PathType Leaf)) {
+        $bytes = New-Object byte[] 32
+        $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+        try { $rng.GetBytes($bytes) } finally { $rng.Dispose() }
+        $secure = ConvertTo-SecureString ([Convert]::ToBase64String($bytes)) -AsPlainText -Force
+        try { $secure | ConvertFrom-SecureString | Set-Content -LiteralPath $secretPath -Encoding UTF8 }
+        finally { $secure.Dispose(); [Array]::Clear($bytes, 0, $bytes.Length) }
+    }
+    $savedSecret = (Get-Content -LiteralPath $secretPath -Raw).Trim() | ConvertTo-SecureString
+    try { return [System.Net.NetworkCredential]::new('', $savedSecret).Password }
+    finally { $savedSecret.Dispose() }
+}
+
 function Test-ApiHealth {
     try {
         $health = Invoke-RestMethod -Uri "$apiUrl/actuator/health" -TimeoutSec 5
@@ -219,9 +235,11 @@ if (-not (Get-OwnedProcess 'Backend')) {
         PORT = [string]$config.BackendPort
         SERVER_ADDRESS = '127.0.0.1'
         DEBUG = 'false'
+        JWT_SECRET_BASE64 = Get-JwtSecret
         DATABASE_URL = "jdbc:postgresql://127.0.0.1:$($config.DatabasePort)/$($config.DatabaseName)"
         DATABASE_USER = [string]$config.DatabaseUser
         DATABASE_PASSWORD = [System.Net.NetworkCredential]::new('', $securePassword).Password
+        PYTHON_MODE = $(if ($config.PSObject.Properties['PythonMode']) { $config.PythonMode } else { 'native' })
         PYTHON_EXECUTABLE = $pythonExecutable
         PYTHON_SCRIPT = $pythonScript
         PYTHONIOENCODING = 'utf-8'
@@ -230,6 +248,7 @@ if (-not (Get-OwnedProcess 'Backend')) {
         Start-ManagedProcess 'Backend' $javaExecutable @('-jar', $backendJar) $backendEnvironment
     } finally {
         $backendEnvironment['DATABASE_PASSWORD'] = $null
+        $backendEnvironment['JWT_SECRET_BASE64'] = $null
         $securePassword.Dispose()
     }
 }

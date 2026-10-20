@@ -4,6 +4,20 @@ Pipeline de análise de dados comerciais:
 
 `Excel → Vue 3 → Spring Boot → Python → PostgreSQL → Chart.js`
 
+## Aula 9 — upload e tratamento inicial
+
+O fluxo é **Planilha → Vue Upload → Pinia → Tratamento → Prévia** em `/app/upload`. Aceita XLSX, XLS binário e CSV UTF-8 com vírgula ou ponto e vírgula. CSV preserva zeros iniciais. Use **Baixar modelo da aula 9** para um exemplo criado conforme os campos do PDF; ele não substitui o arquivo original da professora.
+
+- **State:** `arquivo`, `dadosOriginais`, `dadosTratados`, `registros`, `erros` e `carregando`.
+- **Getters:** `totalClientes`, `clientesNivelA`, `temDados`, `resumoPorSegmento` e totais de validação.
+- **Actions:** `selecionarArquivo`, `validarArquivo`, `processarPlanilha`, `tratarLinha`, `tratarDados`, `validarDados` e `limpar`.
+- **Tratamento:** remove espaços extras, padroniza segmentos para Indústria, Comércio e Serviços e converte nível para maiúsculas. Níveis fora de A/B/C continuam sinalizados.
+- **Prévia:** código, nome, consultor, segmento, nível, total de clientes, quantidade no nível A e resumo por segmento. Totais incluem todos os registros processados, mesmo com ocorrências na origem.
+
+O relatório `/app/relatorios` mostra a cópia tratada e os registros originais. Tratar um campo não apaga sua ocorrência de validação. Recarregar a página ou limpar remove os dados temporários.
+
+No roteiro da aula, **backend Spring Boot, PostgreSQL e Azure entram na próxima etapa**. O upload didático funciona no navegador. O projeto já possui uma integração separada com servidor; Azure permanece como etapa futura. O Vue não acessa o PostgreSQL diretamente.
+
 ## Atividade individual — validação de planilha com Pinia
 
 A atividade utiliza Vue 3 e Pinia no fluxo **Excel → `/app/upload` → store → `/app/relatorios`**. A leitura e a validação acontecem no navegador; essa funcionalidade funciona sem Java, Python ou banco de dados.
@@ -17,16 +31,16 @@ Abra o endereço informado pelo Vite e acesse `/app/upload`. Baixe o modelo Exce
 
 ### Formato e validações
 
-- Arquivo `.xlsx` de até 5 MiB, com análise da primeira aba, no máximo 10.000 registros e 100 colunas. A área utilizada deve terminar até a linha 10.001 e a coluna CV.
+- Arquivo `.xlsx`, `.xls` ou `.csv` UTF-8 de até 5 MiB, com análise da primeira aba, no máximo 10.000 registros e 100 colunas. A área utilizada deve terminar até a linha 10.001 e a coluna CV.
 - Cabeçalhos obrigatórios: `codigo`, `nome` e `email` no modelo de clientes. Bases comerciais com `codigo`, `nome` e `segmento` também são aceitas, com e-mail opcional. Também são aceitos aliases como `Código`, `Código Cliente`, `Nome Cliente` e `E-mail`. Cabeçalhos ausentes, vazios ou duplicados impedem a importação.
-- `status` e `nivel` são opcionais. Quando preenchidos, aceitam respectivamente `Ativo`, `Inativo` ou `Pendente`, e `A`, `B` ou `C`.
+- `status` e `nivel` (ou `nivel_cliente`) são opcionais. Quando preenchidos, aceitam respectivamente `Ativo`, `Inativo` ou `Pendente`, e `A`, `B` ou `C`.
 - São identificados campos obrigatórios vazios, espaços no início/fim ou repetidos, e-mails inválidos, nomes e códigos fora do padrão, além de textos que precisam de padronização.
 - A duplicidade considera o código, ignorando maiúsculas/minúsculas e espaços extras, e marca todas as linhas envolvidas. Nomes totalmente em maiúsculas ou minúsculas e variações de caixa em status/nível geram sugestões de revisão.
-- Linhas completamente vazias são ignoradas; linhas que contêm apenas espaços são analisadas. Os números das linhas do Excel e os valores originais são preservados. As sugestões não alteram o arquivo nem corrigem os dados automaticamente.
+- Linhas completamente vazias são ignoradas; linhas que contêm apenas espaços são analisadas. Os números das linhas do Excel e os valores originais são preservados. A cópia tratada recebe a padronização inicial; os problemas encontrados na origem continuam disponíveis para revisão.
 
 ### State, getters e actions
 
-A store está em [`src/stores/planilha.js`](src/stores/planilha.js), com as três partes identificadas no código.
+A store de upload é exportada por `src/stores/uploadStore.js`; sua implementação está em [`src/stores/uploadStore.js`](src/stores/uploadStore.js), com as três partes identificadas no código.
 
 | Parte | Propriedades ou métodos | Responsabilidade |
 | --- | --- | --- |
@@ -153,3 +167,22 @@ npm.cmd run dev -- --port 5174 --strictPort
 ```
 
 Acesse o CTI em `http://localhost:5174` e confirme a saúde em `http://localhost:8081/actuator/health`. O proxy permite manter a API no mesmo endereço de origem visto pelo navegador. Não use um servidor estático isolado para substituir o backend. Após corrigir a conexão, o botão **Tentar novamente** permite reenviar a planilha selecionada.
+
+
+## Aula 10 — fluxo integrado
+
+A store `src/stores/uploadStore.js` guarda dados originais, tratados, erros, loading e filtro de segmento. Os getters calculam clientes válidos, distribuição por segmento e faturamento total/médio dos registros válidos. O faturamento é opcional para modelos sem essa coluna; se presente, cada valor deve ser numérico e maior que zero. Faturamento mensal e anual mantêm seu período na planilha enviada. O campo anual de clientes converte mensal para anual (vezes 12); o dashboard mostra o período original importado.
+
+As rotas `/app/upload` e `/app/importacao-servidor` usam o mesmo formulário. A action `enviarDados` exporta uma cópia XLSX tratada somente com os registros válidos, preserva a linha de origem e chama o service Axios. O backend revalida as linhas, executa Python/openpyxl e salva a análise no PostgreSQL. Ao concluir, a tela abre o dashboard Chart.js. O filtro de segmento muda apenas a prévia; o envio inclui todos os segmentos aprovados.
+
+O cadastro em /cadastro salva usuários com senha BCrypt e perfil USER. O login retorna JWT Bearer com expiração padrão de 30 minutos. O Vue usa sessionStorage por aba e a API autentica por Authorization, sem sessão por cookie. Perfis USER/ADMIN são persistidos; /api/admin exige ADMIN. Todos os usuários autenticados acessam a mesma carteira compartilhada. Consulte [o guia da Aula 10](docs/Autenticacao_JWT_Aula_10.md) para chave, execução e testes, e [as requisições de exemplo](docs/Aula10_JWT.http).
+
+Para usar as mudanças, gere novamente o JAR com Java 25 (`mvn -f backend/pom.xml package`) e reinicie os serviços locais. Cadastre sua conta; as credenciais antigas simuladas não correspondem a usuários reais.
+
+Validação: `npm test`, `npm run build`, testes Python em `python/test_analyze.py` e `mvn -f backend/pom.xml test`. Para executar também o teste do pipeline com Python real, defina `CTI_FULL_PIPELINE=true` antes do Maven; a `.venv` precisa conter openpyxl. Os testes Java usam H2 isolado; não escrevem no banco local.
+
+A preparação para Azure está em `deploy/azure/README.md` e `deploy/azure/main.bicep`. A publicação requer os recursos e as credenciais da assinatura.
+
+## Aprovação de novos cadastros
+
+Novas contas ficam pendentes até aprovação por ADMIN em /app/admin/cadastros. A conta administradora indicada mantém sua senha atual. Consulte [o guia de aprovação](docs/Aprovacao_Cadastros.md).

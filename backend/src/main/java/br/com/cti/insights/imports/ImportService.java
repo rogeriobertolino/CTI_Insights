@@ -1,30 +1,71 @@
 package br.com.cti.insights.imports;
 
+import br.com.cti.insights.domain.*;
+import br.com.cti.insights.telemetry.TelemetriaService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Map;
+import org.slf4j.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.*;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class ImportService {
-    private final ImportBatchRepository repository; private final ImportedRecordRepository records; private final PythonAnalysisService python; private final ImportDomainService domain; private final ObjectMapper mapper;
-    public ImportService(ImportBatchRepository repository,ImportedRecordRepository records,PythonAnalysisService python,ImportDomainService domain,ObjectMapper mapper){this.repository=repository;this.records=records;this.python=python;this.domain=domain;this.mapper=mapper;}
-    public Map<String,Object> process(MultipartFile file) throws Exception {
-        if(file.isEmpty()||file.getOriginalFilename()==null||!file.getOriginalFilename().toLowerCase().endsWith(".xlsx")) throw new ExcelInvalidoException("Envie um arquivo XLSX válido.");
-        ImportBatch batch=repository.save(new ImportBatch(file.getOriginalFilename())); Path temp=Files.createTempFile("cti-", ".xlsx");
-        try { file.transferTo(temp); Map<String,Object> result=python.analyze(temp); validateColumns(result); List<Map<String,Object>> imported=(List<Map<String,Object>>)result.getOrDefault("records",List.of()); List<ImportedRecord> entities=new ArrayList<>(); for(int i=0;i<imported.size();i++)entities.add(new ImportedRecord(batch.getId(),i+2,mapper.writeValueAsString(imported.get(i)))); records.saveAll(entities); domain.persistClients(imported); result.put("records",imported.subList(0,Math.min(imported.size(),1000))); long rows=((Number)result.getOrDefault("totalRows",0)).longValue(); double quality=((Number)result.getOrDefault("quality",0)).doubleValue(); batch.complete(rows,quality,mapper.writeValueAsString(result));repository.save(batch);return response(batch,result); }
-        catch(Exception e){batch.fail();repository.save(batch);throw e;} finally{Files.deleteIfExists(temp);}
+  private static final Logger LOG = LoggerFactory.getLogger(ImportService.class);
+  private final ImportProcessingService processing;
+  private final ImportBatchRepository batches;
+  private final TelemetriaService telemetry;
+  private final ObjectMapper mapper;
+
+  public ImportService(
+      ImportProcessingService processing,
+      ImportBatchRepository batches,
+      TelemetriaService telemetry,
+      ObjectMapper mapper) {
+    this.processing = processing;
+    this.batches = batches;
+    this.telemetry = telemetry;
+    this.mapper = mapper;
+  }
+
+  public Map<String, Object> process(MultipartFile file) throws Exception {
+    audit(file, TipoEventoTelemetria.UPLOAD, StatusTelemetria.SUCESSO);
+    try {
+      // A transação termina no serviço delegado antes de registrar o resultado.
+      var result = processing.process(file);
+      audit(file, TipoEventoTelemetria.PROCESSAMENTO, StatusTelemetria.SUCESSO);
+      return result;
+    } catch (Exception error) {
+      audit(file, TipoEventoTelemetria.PROCESSAMENTO, StatusTelemetria.ERRO);
+      throw error;
     }
-    public Map<String,Object> latest() throws Exception { ImportBatch batch=repository.findFirstByStatusOrderByCreatedAtDesc("COMPLETED").orElseThrow(()->new IllegalStateException("Nenhuma análise disponível.")); Map<String,Object> result=mapper.readValue(batch.getAnalysisJson(),new TypeReference<>(){});return response(batch,result); }
-    private Map<String,Object> response(ImportBatch batch,Map<String,Object> result){Map<String,Object> response=new LinkedHashMap<>(result);response.put("batchId",batch.getId());response.put("fileName",batch.getFileName());response.put("status",batch.getStatus());response.put("createdAt",batch.getCreatedAt());return response;}
-    private void validateColumns(Map<String,Object> result) {
-        Map<String,Object> columns=(Map<String,Object>)result.getOrDefault("columns",Map.of());
-        boolean hasClient=number(columns.get("clientCode"))>=0||number(columns.get("clientName"))>=0;
-        if(!hasClient) throw new ColunaObrigatoriaException("cliente ou código do cliente");
-        if(number(columns.get("segment"))<0) throw new ColunaObrigatoriaException("segmento");
+  }
+
+  @Transactional(readOnly = true)
+  public Map<String, Object> latest() throws Exception {
+    var batch =
+        batches
+            .findFirstByStatusOrderByCreatedAtDesc("COMPLETED")
+            .orElseThrow(
+                () ->
+                    new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Nenhuma análise disponível."));
+    Map<String, Object> result =
+        mapper.readValue(batch.getAnalysisJson(), new TypeReference<>() {});
+    return ImportProcessingService.response(batch, result);
+  }
+
+  private void audit(MultipartFile file, TipoEventoTelemetria tipo, StatusTelemetria status) {
+    var authentication = SecurityContextHolder.getContext().getAuthentication();
+    String actor = authentication == null ? "sistema" : authentication.getName();
+    try {
+      telemetry.registrar(file.getOriginalFilename(), tipo, status, actor);
+    } catch (RuntimeException error) {
+      LOG.error("Falha ao registrar auditoria tipo={} classe={}", tipo, error.getClass().getName());
     }
-    private int number(Object value){return value instanceof Number number?number.intValue():-1;}
+  }
 }

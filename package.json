@@ -9,10 +9,13 @@
     "status": "powershell -NoProfile -ExecutionPolicy RemoteSigned -File scripts/local.ps1 status",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test"
+    "test": "node --test",
+    "migrate": "powershell -NoProfile -ExecutionPolicy RemoteSigned -File scripts/migrate.ps1",
+    "setup:analytics": "powershell -NoProfile -ExecutionPolicy RemoteSigned -File scripts/setup-analytics.ps1"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
+    "axios": "^1.20.0",
     "chart.js": "^4.5.0",
     "pinia": "^4.0.3",
     "tailwindcss": "^4.3.3",

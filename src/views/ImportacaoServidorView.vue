@@ -1,54 +1,42 @@
 <script setup>
-import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { clearData, dataStore, uploadWorkbook } from '../dataStore.js'
+import { computed } from 'vue'
+import { useUploadStore } from '../stores/uploadStore.js'
+import { useAuthStore } from '../stores/auth.js'
 
-const file = ref(null)
-const fileInput = ref(null)
-const status = ref('idle')
-const error = ref('')
-const router = useRouter()
-const busy = computed(() => status.value === 'processing' || dataStore.loading)
-const size = computed(() => file.value ? `${(file.value.size / 1048576).toFixed(2)} MB` : '')
-
-function select(value) {
-  if (!value || busy.value) return
-  file.value = value
-  error.value = ''
-  status.value = value.name.toLowerCase().endsWith('.xlsx') && value.size > 0 && value.size <= 20 * 1048576 ? 'ready' : 'invalid'
-}
-
-async function analyze() {
-  if (!file.value || busy.value || !['ready', 'error'].includes(status.value)) return
-  status.value = 'processing'
-  error.value = ''
-  try {
-    await uploadWorkbook(file.value)
-    status.value = 'done'
-  } catch (e) {
-    error.value = e.message
-    status.value = 'error'
-  }
-}
-
-function reset() {
-  if (busy.value) return
-  file.value = null
-  if (fileInput.value) fileInput.value.value = ''
-  status.value = 'idle'
-  error.value = ''
-  clearData()
+const store = useUploadStore()
+const auth = useAuthStore()
+const temSegmento = computed(() => store.cabecalhos.includes('segmento'))
+const podeEnviar = computed(() => !!auth.usuario && store.temDados && temSegmento.value && store.totalValidos > 0 && !store.carregando && !store.enviando && !store.analiseSalva)
+async function importar() {
+  if (podeEnviar.value) await store.enviarDados()
 }
 </script>
 
 <template>
   <section class="page">
-    <div class="page-head"><div><p class="kicker">NOVA IMPORTAÇÃO</p><h1>Importar dados</h1><span>Envie uma planilha para o pipeline integrado de análise.</span></div><b>EXCEL → JAVA → PYTHON → POSTGRESQL</b></div>
-    <div class="steps"><b>① Upload Vue</b><i></i><span>② API Java</span><i></i><span>③ Análise Python</span><i></i><span>④ Persistência</span></div>
-    <div class="upload-grid">
-      <article class="panel upload-panel"><h2>⇧　Selecione o arquivo XLSX</h2><p>O Spring Boot recebe o arquivo, aciona o Python e persiste o resultado no PostgreSQL.</p><label class="dropzone" @dragover.prevent @drop.prevent="select($event.dataTransfer.files[0])"><input ref="fileInput" type="file" accept=".xlsx" :disabled="busy" @change="select($event.target.files[0])"><b>⇧</b><strong>Arraste sua planilha aqui</strong><span>ou <u>selecione um arquivo</u></span><small>XLSX · até 20 MB</small></label><div v-if="file" class="file"><b>X</b><span><strong>{{ file.name }}</strong><small>{{ size }} · {{ status==='done'?'Análise persistida':status==='processing'?'Processando no servidor...':'Pronto para enviar' }}</small><progress v-if="status==='processing'"></progress></span><button :disabled="busy" aria-label="Remover arquivo" @click="reset">×</button></div><p v-if="status==='invalid'" class="error">Envie um XLSX não vazio de até 20 MB.</p><p v-if="error" class="error">{{ error }}</p><footer><button class="btn outline" :disabled="busy" @click="reset">Limpar</button><button v-if="status!=='done'" class="btn primary" :disabled="busy || !['ready','error'].includes(status)" @click="analyze">{{ status==='processing'?'Analisando...':status==='error'?'Tentar novamente →':'Enviar e analisar →' }}</button><button v-else class="btn primary" @click="router.push('/app/graficos')">Ver dashboard →</button></footer></article>
-      <aside class="panel help"><p class="kicker">PIPELINE</p><h2>Tratamento governado</h2><ol><li><b>01</b><span><strong>Spring Boot</strong>Valida o arquivo e coordena o lote.</span></li><li><b>02</b><span><strong>Python</strong>Padroniza e calcula métricas.</span></li><li><b>03</b><span><strong>PostgreSQL</strong>Persiste os resultados consolidados.</span></li></ol><aside><b>Privacidade e LGPD</b><p>O arquivo temporário é excluído após o processamento.</p></aside></aside>
-    </div>
-    <article v-if="dataStore.analysis" class="panel recent"><p class="kicker">RESULTADO PERSISTIDO</p><h2>{{ dataStore.analysis.fileName }}</h2><div class="report-summary"><p>Linhas analisadas<b>{{ dataStore.analysis.totalRows }}</b></p><p>Colunas<b>{{ dataStore.analysis.headers?.length||0 }}</b></p><p>Qualidade<b>{{ dataStore.analysis.quality.toFixed(1) }}%</b></p><aside>● Lote {{ dataStore.analysis.batchId }}</aside></div></article>
+    <div class="page-head"><div><p class="kicker">ANÁLISES NO SERVIDOR</p><h1>Importação integrada</h1><span>Salve os registros validados no banco e gere a análise no servidor.</span></div></div>
+    <article v-if="!store.temDados" class="panel">
+      <h2>Valide uma planilha para começar</h2>
+      <p class="validation-copy">Selecione o arquivo na página de validação e confira as ocorrências. Depois, continue para esta etapa. Os dados validados ficam disponíveis enquanto esta página do navegador estiver aberta.</p>
+      <RouterLink class="btn primary" to="/app/upload">Selecionar e validar planilha →</RouterLink>
+    </article>
+    <article v-else class="panel">
+      <h2>Confira o envio</h2>
+      <dl><dt>Arquivo</dt><dd>{{ store.nomeArquivo }}</dd><dt>Registros encontrados</dt><dd>{{ store.totalRegistros }}</dd><dt>Registros válidos para enviar</dt><dd>{{ store.totalValidos }}</dd><dt>Registros com ocorrências, excluídos do envio</dt><dd>{{ store.totalComErro }}</dd></dl>
+      <p class="validation-copy">Serão enviados os registros válidos de todos os segmentos. O servidor salvará os dados, gerará a análise e registrará a importação na auditoria.</p>
+      <RouterLink v-if="!store.enviando" class="btn outline" to="/app/relatorios">Revisar relatório de validação</RouterLink>
+      <RouterLink v-if="!store.enviando" class="btn outline" to="/app/upload">Trocar ou validar planilha</RouterLink>
+      <p v-if="!temSegmento" class="validation-alert" role="alert">Inclua a coluna segmento na planilha e valide novamente para importar no servidor.</p>
+      <p v-if="!store.totalValidos" class="validation-alert" role="alert">Nenhum registro válido para enviar. Corrija as ocorrências e valide novamente.</p>
+      <p v-if="!auth.usuario" class="validation-copy">Para importar, <RouterLink to="/login">entre na sua conta</RouterLink>. Após entrar, retorne à Importação integrada pelo menu.</p>
+      <p v-if="store.erroEnvio" class="validation-alert" role="alert">{{ store.erroEnvio }}</p>
+      <p v-if="store.enviando" role="status">Importando registros e gerando a análise…</p>
+      <div v-if="store.analiseSalva" role="status">
+        <p>Importação concluída. Lote: {{ store.analiseSalva.batchId }}.</p>
+        <RouterLink class="btn primary" to="/app/graficos">Abrir dashboard →</RouterLink>
+        <RouterLink class="btn outline" to="/app/registros-servidor">Consultar registros persistidos</RouterLink>
+      </div>
+      <button v-else class="btn primary" :disabled="!podeEnviar" @click="importar">{{ store.enviando ? 'Importando…' : 'Confirmar importação no servidor' }}</button>
+    </article>
   </section>
 </template>

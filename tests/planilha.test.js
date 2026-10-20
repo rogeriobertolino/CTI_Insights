@@ -11,6 +11,75 @@ function storeNova() {
   return usePlanilhaStore()
 }
 
+test('aula 9: mantém originais, trata segmento/consultor/nível e calcula indicadores', async () => {
+  const store = storeNova()
+  const entrada = arquivo([
+    ['codigo_cliente', 'nome_cliente', 'consultor', 'segmento', 'nivel_cliente'],
+    ['001', 'Ana Silva', '  Maria  Souza ', 'IND.', ' a '],
+    ['002', 'Bia Costa', 'Pedro', 'COMERCIO', 'b'],
+    ['003', 'Carla Souza', 'João', 'SERVICOS', 'D'],
+  ])
+  store.selecionarArquivo(entrada)
+  assert.deepEqual(store.arquivo, entrada)
+  assert.equal(await store.processarPlanilha(), true)
+  assert.equal(store.dadosOriginais[0].consultor, '  Maria  Souza ')
+  assert.equal(store.dadosOriginais[0].nivel, ' a ')
+  assert.equal(store.dadosTratados[0].consultor, 'Maria Souza')
+  assert.deepEqual(store.dadosTratados.map(c => c.segmento), ['Indústria', 'Comércio', 'Serviços'])
+  assert.deepEqual(store.dadosTratados.map(c => c.nivel_cliente), ['A', 'B', 'D'])
+  assert.equal(store.clientesNivelA, 1)
+  assert.equal(store.totalClientes, 3)
+  assert.equal(store.temDados, true)
+  assert.equal(store.resumoPorSegmento['Indústria'], 1)
+  assert.ok(store.erros.some(e => e.linha === 4 && e.campo === 'nivel' && e.tipo === 'fora_padrao'))
+  const copia = JSON.stringify(store.dadosTratados)
+  store.validarDados()
+  assert.equal(JSON.stringify(store.dadosTratados), copia)
+  store.limpar()
+  assert.equal(store.temDados, false)
+  assert.equal(store.dadosOriginais.length, 0)
+  assert.equal(store.dadosTratados.length, 0)
+})
+
+test('CSV UTF-8: vírgula/ponto e vírgula, acentos, BOM e zeros iniciais', async () => {
+  for (const separador of [',', ';']) {
+    const store = storeNova()
+    const csv = '\uFEFF' + [
+      ['codigo_cliente', 'nome_cliente', 'segmento', 'consultor', 'nivel_cliente'],
+      ['001', 'José Silva', 'INDÚSTRIA', ' Maria ', 'a'],
+    ].map(linha => linha.join(separador)).join('\r\n')
+    const buffer = new TextEncoder().encode(csv).buffer
+    assert.equal(await store.importarArquivo({ name: 'clientes.CSV', size: buffer.byteLength, arrayBuffer: async () => buffer }), true)
+    assert.equal(store.dadosTratados[0].codigo_cliente, '001')
+    assert.equal(store.dadosTratados[0].nome_cliente, 'José Silva')
+    assert.equal(store.dadosTratados[0].segmento, 'Indústria')
+    assert.equal(store.clientesNivelA, 1)
+  }
+})
+
+test('XLS binário: lê primeira aba e trata campos do modelo da aula', async () => {
+  const store = storeNova()
+  const workbook = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([
+    ['codigo_cliente', 'nome_cliente', 'segmento', 'nivel_cliente'],
+    ['001', 'Ana Silva', 'SERVICOS', 'c'],
+  ]), 'Clientes')
+  const buffer = XLSX.write(workbook, { type: 'array', bookType: 'biff8' })
+  assert.equal(await store.importarArquivo({ name: 'clientes.xls', size: buffer.byteLength, arrayBuffer: async () => buffer }), true)
+  assert.equal(store.dadosTratados[0].codigo_cliente, '001')
+  assert.equal(store.dadosTratados[0].segmento, 'Serviços')
+  assert.equal(store.dadosTratados[0].nivel_cliente, 'C')
+})
+
+test('nivel e nivel_cliente simultâneos são rejeitados como cabeçalhos duplicados', async () => {
+  const store = storeNova()
+  assert.equal(await store.importarArquivo(arquivo([
+    ['codigo', 'nome', 'email', 'nivel', 'nivel_cliente'],
+    ['001', 'Ana Silva', 'ana@example.com', 'A', 'B'],
+  ])), false)
+  assert.match(store.erroArquivo, /Cabeçalho duplicado/)
+})
+
 function arquivo(linhas, { nome = 'clientes.xlsx', segundaAba, ajustarAba } = {}) {
   const workbook = XLSX.utils.book_new()
   const aba = XLSX.utils.aoa_to_sheet(linhas)
@@ -127,7 +196,7 @@ test('rejeita extensão incorreta, arquivo vazio, tamanho excessivo e conteúdo 
   const bytes = new TextEncoder().encode('codigo,nome,email\n1,Ana,ana@example.com').buffer
   for (const [entrada, mensagem] of [
     [null, /Selecione/],
-    [{ name: 'dados.csv', size: bytes.byteLength, arrayBuffer: async () => bytes }, /Formato não suportado/],
+    [{ name: 'dados.txt', size: bytes.byteLength, arrayBuffer: async () => bytes }, /Formato não suportado/],
     [{ name: 'vazio.xlsx', size: 0, arrayBuffer: async () => new ArrayBuffer(0) }, /vazio/],
     [{ name: 'grande.xlsx', size: LIMITE_ARQUIVO_BYTES + 1, arrayBuffer: async () => bytes }, /5 MB/],
     [{ name: 'renomeado.xlsx', size: bytes.byteLength, arrayBuffer: async () => bytes }, /conteúdo não é/],
@@ -233,4 +302,59 @@ test('e-mail válido em maiúsculas recebe sugestão de padronização sem alter
   assert.equal(store.erros.filter((erro) => erro.linha === 3).length, 1)
   assert.equal(store.erros.find((erro) => erro.linha === 3).tipo, 'email_invalido')
   assert.equal(store.totalValidos, 0)
+})
+
+test('base comercial aceita números e símbolos nos nomes de empresas', async () => {
+  const store = storeNova()
+  assert.equal(await store.importarArquivo(arquivo([
+    ['codigo_cliente', 'cliente', 'segmento', 'nivel'],
+    ['CLI0001', 'Tech Central 001', 'Serviços', 'A'],
+    ['CLI0002', 'Mercado & Filhos (Unidade 2)', 'Comércio', 'B'],
+    ['CLI0003', '', 'Indústria', 'C'],
+    ['CLI0004', 'Empresa 004', 'Serviços', 'D'],
+  ])), true)
+  assert.equal(store.totalValidos, 2)
+  assert.deepEqual(store.erros.map(e => [e.linha, e.campo, e.tipo]), [
+    [4, 'nome', 'campo_vazio'], [5, 'nivel', 'fora_padrao'],
+  ])
+  assert.equal(store.dadosOriginais[0].nome, 'Tech Central 001')
+})
+
+
+test('faturamento é numérico, aceita zero e calcula total/média somente dos válidos', async () => {
+  const store=storeNova()
+  assert.equal(await store.importarArquivo(arquivo([
+    ['codigo_cliente','cliente','segmento','nivel','faturamento_mensal'],
+    ['CLI001','Empresa 001','Serviços','A',707553.52],
+    ['CLI002','Empresa 002','Comércio','B','R$ 1.234,56'],
+    ['CLI003','Empresa 003','Serviços','C',0],
+    ['CLI004','Empresa 004','Serviços','C','inválido'],
+  ])),true)
+  assert.equal(store.totalValidos,3)
+  assert.equal(store.periodoFaturamento,'mensal')
+  assert.equal(store.dadosOriginais[0].faturamento,707553.52)
+  assert.equal(store.totalFaturamento,708788.08)
+  assert.equal(store.faturamentoMedio,236262.69)
+  store.filtroSegmento='Comércio'
+  assert.equal(store.clientesFiltrados.length,1)
+  const enviado=store.prepararArquivoEnvio()
+  const wb=XLSX.read(await enviado.arrayBuffer())
+  const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]])
+  assert.equal(rows.length,3)
+  assert.equal(rows[0].faturamento_mensal,707553.52)
+  assert.equal(rows[0].linha_origem,2)
+  assert.equal(rows[0].nome_cliente,'Empresa 001')
+  assert.equal(store.dadosOriginais[1].faturamento,'R$ 1.234,56')
+})
+
+
+test('falha de leitura preserva arquivo selecionado para tentar novamente', async () => {
+  const store=storeNova()
+  const entrada=arquivo([['nome'],['Ana Silva']])
+  assert.equal(await store.importarArquivo(entrada),false)
+  assert.deepEqual(store.arquivo,entrada)
+  assert.equal(await store.processarPlanilha(),false)
+  assert.match(store.erroArquivo,/Colunas obrigatórias/)
+  store.limpar()
+  assert.equal(store.arquivo,null)
 })
