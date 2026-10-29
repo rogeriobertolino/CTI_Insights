@@ -20,7 +20,7 @@ def series_graficos(rows, stats):
     boxes = []
     for group in stats["bySegment"]:
         if not group["count"]: continue
-        nums = [r["faturamento_mensal"] for r in rows if r.get("segmento") == group["name"] and r.get("faturamento_mensal") is not None]
+        nums = [r["faturamento_mensal"] for r in rows if (r.get("segmento") or "Não informado") == group["name"] and r.get("faturamento_mensal") is not None]
         iqr = group["q3"] - group["q1"]
         inside = [v for v in nums if group["q1"]-1.5*iqr <= v <= group["q3"]+1.5*iqr]
         boxes.append({**group, "lowerWhisker": min(inside), "upperWhisker": max(inside), "outliers": [v for v in nums if v not in inside]})

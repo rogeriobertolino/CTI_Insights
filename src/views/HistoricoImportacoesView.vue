@@ -2,7 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { analysisClient } from '../services/analysis.js'
-import { dataStore } from '../dataStore.js'
+import { dataStore } from '../stores/dataStore.js'
 const router = useRouter()
 const history = ref(null), page = ref(0), loading = ref(false), error = ref('')
 async function load() {

@@ -3,11 +3,11 @@ import { createPinia } from 'pinia'
 import { useAuthStore } from './stores/auth.js'
 import { useUploadStore } from './stores/uploadStore.js'
 import { useCadastrosStore } from './stores/cadastros.js'
-import { clearData } from './dataStore.js'
+import { clearData } from './stores/dataStore.js'
 import App from './App.vue' // Importa o componente raiz da aplicação
 import router from './router/index.js' // Importa as rotas de src/router/index.js
-import './style.css' // Importa o Tailwind CSS
-import './validation.css'
+import './assets/styles/style.css' // Importa o Tailwind CSS
+import './assets/styles/validation.css'
 
 const app = createApp(App)
 

@@ -3,7 +3,7 @@ import { computed, onMounted } from 'vue'
 import AnaliseCientifica from '../components/AnaliseCientifica.vue'
 import { Bar } from 'vue-chartjs'
 import { BarElement, CategoryScale, Chart as ChartJS, Legend, LinearScale, Tooltip } from 'chart.js'
-import { dataStore, loadLatestAnalysis } from '../dataStore.js'
+import { dataStore, loadLatestAnalysis } from '../stores/dataStore.js'
 ChartJS.register(BarElement,CategoryScale,LinearScale,Tooltip,Legend)
 const a=computed(()=>dataStore.analysis)
 onMounted(loadLatestAnalysis)

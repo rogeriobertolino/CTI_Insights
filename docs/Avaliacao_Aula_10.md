@@ -15,7 +15,7 @@ Esta é uma comparação do material didático com o código disponível, não u
 | Item da apostila | Páginas | Situação | Evidência no projeto |
 | --- | --- | --- | --- |
 | Java, Maven e Spring Boot 3 | 3-4 | Atendido | `backend/pom.xml`: Java 25 e Spring Boot 3.5.16. |
-| Web, JPA e PostgreSQL | 9 | Atendido | Dependências em `backend/pom.xml` e datasource em `backend/src/main/resources/application.yml`. |
+| Web, JPA e PostgreSQL | 9 | Atendido | Dependências em `backend/pom.xml` e datasource em `backend/src/main/resources/application.properties`. |
 | Spring Security e Validation | 10 | Atendido | Dependências presentes; validação de cadastro com `@Valid` e constraints. |
 | Bibliotecas JJWT | 11, 13 | Ausente | Não existem `jjwt-api`, `jjwt-impl` e `jjwt-jackson` no POM, nem outra implementação JWT identificada. |
 | Entidade Usuario com id, nome, email e hash | 13, 15-16 | Atendido | `backend/src/main/java/br/com/cti/insights/auth/Usuario.java`. |

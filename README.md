@@ -60,9 +60,16 @@ O pipeline com servidor continua disponível em `/app/importacao-servidor` e `/a
 
 ## Estrutura
 
+O mapa completo e os comandos de verificação estão em [Estrutura do Projeto](docs/Estrutura_do_Projeto.md).
+
 - `src/`: front-end Vue 3, upload, relatórios e dashboards Chart.js.
 - `backend/`: API Spring Boot responsável por validação, coordenação e persistência.
 - `python/`: tratamento, padronização e cálculo das métricas.
+- `analytics-python/`: módulos de limpeza, estatística, gráficos e insights.
+- `tests/`: testes do frontend e dos dois módulos Python, separados por tecnologia.
+- `scripts/`: execução local, migrações, preparação do ambiente e geração de documentos.
+- `docs/`: documentação, exemplos e relatórios técnicos.
+- `deploy/`: infraestrutura Azure e migrações SQL.
 - `compose.yml`: PostgreSQL e API para execução integrada.
 
 ## Uso local neste computador
@@ -179,10 +186,35 @@ O cadastro em /cadastro salva usuários com senha BCrypt e perfil USER. O login 
 
 Para usar as mudanças, gere novamente o JAR com Java 25 (`mvn -f backend/pom.xml package`) e reinicie os serviços locais. Cadastre sua conta; as credenciais antigas simuladas não correspondem a usuários reais.
 
-Validação: `npm test`, `npm run build`, testes Python em `python/test_analyze.py` e `mvn -f backend/pom.xml test`. Para executar também o teste do pipeline com Python real, defina `CTI_FULL_PIPELINE=true` antes do Maven; a `.venv` precisa conter openpyxl. Os testes Java usam H2 isolado; não escrevem no banco local.
+Validação: `npm test`, `npm run build`, testes Python em `tests/python/test_analyze.py` e `mvn -f backend/pom.xml test`. Para executar também o teste do pipeline com Python real, defina `CTI_FULL_PIPELINE=true` e `CTI_TEST_PYTHON` com o executável do ambiente que contém as dependências de `python/requirements.txt`. Os testes Java usam H2 isolado; não escrevem no banco local.
 
 A preparação para Azure está em `deploy/azure/README.md` e `deploy/azure/main.bicep`. A publicação requer os recursos e as credenciais da assinatura.
 
 ## Aprovação de novos cadastros
 
 Novas contas ficam pendentes até aprovação por ADMIN em /app/admin/cadastros. A conta administradora indicada mantém sua senha atual. Consulte [o guia de aprovação](docs/Aprovacao_Cadastros.md).
+
+
+### Estrutura do backend Java
+
+O backend organiza suas classes por camada no pacote `com.cti.provedor`:
+
+```text
+backend/src/main/java/com/cti/provedor/
+├── controller/
+├── service/
+├── repository/
+├── model/
+├── dto/
+├── config/
+├── security/
+└── CtiProvedorApplication.java
+
+backend/src/main/resources/
+└── application.properties
+```
+
+Controllers recebem as requisições HTTP; services aplicam regras de negócio;
+repositories acessam o banco via Spring Data JPA; model contém entidades e enums;
+dto define os dados de entrada e saída; config reúne a configuração do Spring Security; security implementa o JWT.
+Os testes Java ficam em `backend/src/test/java/com/cti/provedor/`.

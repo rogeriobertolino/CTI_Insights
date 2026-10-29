@@ -2,7 +2,7 @@
 import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
-import { clearData } from '../dataStore.js'
+import { clearData } from '../stores/dataStore.js'
 import { useUploadStore } from '../stores/uploadStore.js'
 const auth = useAuthStore()
 const router = useRouter()

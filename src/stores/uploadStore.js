@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx'
 import { dataContrato } from '../utils/dataContrato.js'
 import { parseFaturamento } from '../utils/faturamento.js'
 import { enviarPlanilha } from '../services/analysis.js'
-import { dataStore } from '../dataStore.js'
+import { dataStore } from './dataStore.js'
 
 export const LIMITE_ARQUIVO_BYTES = 5 * 1024 * 1024
 export const LIMITE_REGISTROS = 10000

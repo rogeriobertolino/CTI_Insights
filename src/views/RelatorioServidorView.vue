@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { dataStore, loadLatestAnalysis } from '../dataStore.js'
+import { dataStore, loadLatestAnalysis } from '../stores/dataStore.js'
 const q=ref('')
 onMounted(loadLatestAnalysis)
 const headers=computed(()=>dataStore.analysis?.headers||[])

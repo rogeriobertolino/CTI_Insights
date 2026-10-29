@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { useCadastrosStore } from './cadastros.js'
-import { clearData } from '../dataStore.js'
+import { clearData } from './dataStore.js'
 import { authError, entrar, sair, usuarioAtual } from '../services/auth.js'
 export const useAuthStore = defineStore('auth', {
   state: () => ({ usuario: null, carregando: false, erro: '' }),

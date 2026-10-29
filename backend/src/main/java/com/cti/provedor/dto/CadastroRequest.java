@@ -1,0 +1,13 @@
+package com.cti.provedor.dto;
+
+import jakarta.validation.constraints.*;
+
+public record CadastroRequest(
+    @NotBlank @Size(min = 3, max = 120) String nome,
+    @NotBlank @Email @Size(max = 254) String email,
+    @NotBlank @Size(min = 8, max = 72) String senha) {
+  @Override
+  public String toString() {
+    return "CadastroRequest[senha=[PROTEGIDA]]";
+  }
+}

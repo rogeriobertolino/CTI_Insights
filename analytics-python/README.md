@@ -1,6 +1,6 @@
 # Ciência de dados do CTI Insights
 
-Implementação do guia de ETL, integrada ao backend e ao dashboard. A pasta `python/` mantém a entrada JSON chamada pelo Spring Boot. Os módulos desta pasta fazem limpeza, validação, estatística, gráficos e insights. A leitura usa openpyxl para preservar a estabilidade do fluxo; não depende de pandas. SciPy executa os testes estatísticos e Matplotlib exporta PNG.
+Implementação do guia de ETL, integrada ao backend e ao dashboard. A pasta `python/` mantém a entrada JSON chamada pelo Spring Boot. Os módulos desta pasta fazem limpeza, validação, estatística, gráficos e insights. A leitura usa openpyxl e a limpeza usa pandas. As dependências compartilhadas ficam em `python/requirements.txt`, incluído pelo arquivo de dependências deste módulo. SciPy executa os testes estatísticos e Matplotlib exporta PNG.
 
 ## Executar no Windows
 

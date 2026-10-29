@@ -12,6 +12,8 @@ dist/
 # Python e dados locais
 .venv/
 .runtime/
+tmp/
+output/
 __pycache__/
 *.pyc
 
