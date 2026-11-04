@@ -15,7 +15,7 @@ public record ClienteResponse(
     BigDecimal faturamentoAnual,
     NivelCliente nivel,
     StatusCliente status,
-    String email) {
+    String email, String cidade, String uf) {
   public static ClienteResponse from(Cliente cliente) {
     return new ClienteResponse(
         cliente.getId(),
@@ -27,6 +27,6 @@ public record ClienteResponse(
         cliente.getFaturamentoAnual(),
         cliente.getNivel(),
         cliente.getStatus(),
-        cliente.getEmail());
+        cliente.getEmail(), cliente.getCidade(), cliente.getUf());
   }
 }

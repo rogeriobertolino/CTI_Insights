@@ -48,6 +48,7 @@ public class ClienteService {
             request.faturamentoAnual(),
             request.nivel(),
             request.status() == null ? StatusCliente.ATIVO : request.status());
+    cliente.setLocalidade(request.cidade(), request.uf() == null ? null : request.uf().toUpperCase(java.util.Locale.ROOT));
     cliente.setEmail(
         request.email() == null || request.email().isBlank()
             ? null
@@ -70,6 +71,7 @@ public class ClienteService {
         request.faturamentoAnual(),
         request.nivel(),
         request.status() == null ? StatusCliente.ATIVO : request.status());
+    cliente.setLocalidade(request.cidade(), request.uf() == null ? null : request.uf().toUpperCase(java.util.Locale.ROOT));
     cliente.setEmail(
         request.email() == null || request.email().isBlank()
             ? null

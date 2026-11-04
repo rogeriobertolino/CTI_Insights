@@ -2,7 +2,7 @@
 import { reactive, ref } from 'vue'
 import { cadastrarUsuario, authError } from '../services/auth.js'
 
-const form = reactive({ name: '', email: '', password: '', confirmation: '' })
+const form = reactive({ name: '', email: '', password: '', confirmation: '', matricula: '', turma: '' })
 const showPassword = ref(false)
 const errors = ref({})
 const message = ref('')
@@ -49,6 +49,8 @@ async function submit() {
             <input id="register-email" v-model="form.email" name="email" type="email" autocomplete="email" placeholder="nome@empresa.com.br" maxlength="254" required :aria-invalid="!!errors.email" :aria-describedby="errors.email ? 'email-error' : undefined">
             <small v-if="errors.email" id="email-error" class="field-error">{{ errors.email }}</small>
           </label>
+          <label for="register-matricula">Matrícula (opcional)<input id="register-matricula" v-model="form.matricula" maxlength="30" autocomplete="off"></label>
+          <label for="register-turma">Turma (opcional)<input id="register-turma" v-model="form.turma" maxlength="60" autocomplete="off"></label>
           <label for="register-password">Senha
             <input id="register-password" v-model="form.password" name="password" :type="showPassword ? 'text' : 'password'" autocomplete="new-password" placeholder="No mínimo 8 caracteres" minlength="8" required :aria-invalid="!!errors.password" aria-describedby="password-help password-error">
             <small id="password-help" class="field-help">Use uma senha exclusiva, com pelo menos 8 caracteres.</small>

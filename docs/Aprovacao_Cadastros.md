@@ -1,5 +1,7 @@
 # Aprovação administrativa de cadastros
 
+Atualização de 29/10/2026: cadastro com matrícula/turma opcionais, bloqueio de contas aprovadas e reaprovação de contas bloqueadas/recusadas. Consulte o [contrato atualizado](Contrato_Carteira_Anual.md).
+
 Página: /app/admin/cadastros. Somente usuários ADMIN aprovados podem abrir a página e usar a API de revisão.
 
 ## Fluxo
@@ -11,7 +13,7 @@ Página: /app/admin/cadastros. Somente usuários ADMIN aprovados podem abrir a p
 5. Ao aprovar, a conta passa a APROVADO e pode entrar com a senha cadastrada.
 6. Ao recusar, a conta passa a RECUSADO e continua sem acesso. A lista registra quando e por qual administrador a decisão foi tomada.
 
-A página tem filtros por situação, contadores e paginação de 25 registros. A aprovação/recusa aplica-se apenas a solicitações pendentes; uma segunda decisão retorna conflito e a lista é atualizada. Contas ADMIN não podem ser alteradas por essa tela. A API não expõe senhas nem hashes.
+A página tem filtros por situação, contadores e paginação de 25 registros. A aprovação/recusa inicial aplica-se a solicitações pendentes. Contas aprovadas podem ser bloqueadas e contas bloqueadas/recusadas podem ser reaprovadas. Repetir a mesma decisão ou pedir uma transição inválida retorna conflito e atualiza a lista. Contas ADMIN não podem ser alteradas por essa tela. A API não expõe senhas nem hashes.
 
 ## Conta administradora inicial
 

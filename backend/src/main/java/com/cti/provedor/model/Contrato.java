@@ -42,7 +42,7 @@ public class Contrato {
   @Column(name = "data_fim")
   private LocalDate dataFim;
 
-  @Column(nullable = false, precision = 15, scale = 2)
+  @Column(precision = 15, scale = 2)
   private BigDecimal valor;
 
   @Enumerated(EnumType.STRING)

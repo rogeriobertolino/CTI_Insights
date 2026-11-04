@@ -30,16 +30,18 @@ def salvar_graficos(rows, charts, directory):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+    campo = 'faturamento_anual' if any('servicos_contratados' in r for r in rows) else 'faturamento_mensal'
+    periodo = 'anual' if campo == 'faturamento_anual' else 'mensal'
     directory.mkdir(parents=True, exist_ok=True)
     def save(name, title):
         plt.title(title); plt.tight_layout(); plt.savefig(directory/name, dpi=130); plt.close()
     line = charts["contractsByMonth"]
     plt.figure(); plt.plot([v["month"] for v in line], [v["count"] for v in line], marker="o"); plt.xticks(rotation=45); plt.ylabel("Contratos"); save("linha_contratacoes.png", "Contratações por mês")
-    plt.figure(); plt.hist([r["faturamento_mensal"] for r in rows if r.get("faturamento_mensal") is not None], bins=10); plt.xlabel("Faturamento mensal (R$)"); plt.ylabel("Frequência"); save("histograma_faturamento.png", "Distribuição do faturamento")
+    plt.figure(); plt.hist([r[campo] for r in rows if r.get(campo) is not None], bins=10); plt.xlabel(f"Faturamento {periodo} (R$)"); plt.ylabel("Frequência"); save("histograma_faturamento.png", "Distribuição do faturamento")
     groups = defaultdict(list)
     for row in rows:
-        if row.get("faturamento_mensal") is not None: groups[row.get("segmento", "Não informado")].append(row["faturamento_mensal"])
+        if row.get(campo) is not None: groups[row.get("segmento", "Não informado")].append(row[campo])
     plt.figure()
     if groups: plt.boxplot(list(groups.values()), tick_labels=list(groups)); plt.xticks(rotation=25)
-    plt.ylabel("Faturamento mensal (R$)"); save("boxplot_faturamento_segmento.png", "Faturamento por segmento")
-    plt.figure(); scatter = charts["revenueServices"]; plt.scatter([p["x"] for p in scatter], [p["y"] for p in scatter]); plt.xlabel("Serviços distintos por cliente"); plt.ylabel("Faturamento mensal (R$)"); save("dispersao_faturamento_servicos.png", "Faturamento e serviços")
+    plt.ylabel(f"Faturamento {periodo} (R$)"); save("boxplot_faturamento_segmento.png", "Faturamento por segmento")
+    plt.figure(); scatter = charts["revenueServices"]; plt.scatter([p["x"] for p in scatter], [p["y"] for p in scatter]); plt.xlabel("Serviços distintos por cliente"); plt.ylabel(f"Faturamento {periodo} (R$)"); save("dispersao_faturamento_servicos.png", "Faturamento e serviços")

@@ -84,6 +84,7 @@ public class ImportDomainService {
       if (contact.isBlank()) contact = exactText(record, "email_cliente");
       if (!contact.isBlank()) client.setEmail(contact.toLowerCase(java.util.Locale.ROOT));
       clientes.save(client);
+      client.setLocalidade(exactText(record, "cidade"), exactText(record, "uf"));
       persistContract(record, client);
       created++;
     }
@@ -91,6 +92,22 @@ public class ImportDomainService {
   }
 
   private void persistContract(Map<String, Object> row, Cliente client) {
+    String multiple = exactText(row, "servicos_contratados");
+    if (!multiple.isBlank()) {
+      var date = java.time.LocalDate.parse(exactText(row, "data_contratacao"));
+      for (String name : new java.util.LinkedHashSet<>(java.util.Arrays.asList(multiple.split(";")))) {
+        if (name.isBlank()) continue;
+        var service = servicos.findFirstByNomeIgnoreCaseOrderByIdAsc(name.trim())
+            .orElseGet(() -> servicos.save(new Servico(name.trim(), null, null)));
+        if (!contratos.existsByClienteIdAndServicoIdAndDataInicioAndValorAndStatus(
+            client.getId(), service.getId(), date, null, StatusContrato.PENDENTE)) {
+          var contract = new Contrato();
+          contract.update(client, service, date, null, null, StatusContrato.PENDENTE);
+          contratos.save(contract);
+        }
+      }
+      return;
+    }
     String serviceName = exactText(row, "servico");
     String start = exactText(row, "data_inicio");
     if (serviceName.isBlank() || start.isBlank()) return;

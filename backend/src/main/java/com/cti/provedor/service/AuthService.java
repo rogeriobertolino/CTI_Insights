@@ -41,6 +41,7 @@ public class AuthService {
       throw new ResponseStatusException(HttpStatus.CONFLICT, "Este e-mail já está cadastrado.");
     // O cadastro público sempre cria USER; nenhum perfil é recebido do cliente.
     var user = new Usuario(request.nome().trim(), email, passwords.encode(request.senha()));
+    user.setDadosAcademicos(request.matricula(), request.turma());
     user.solicitarAprovacao();
     return UsuarioResponse.from(users.saveAndFlush(user));
   }

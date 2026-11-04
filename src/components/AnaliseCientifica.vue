@@ -11,6 +11,7 @@ const charts = computed(() => info.value.charts || {})
 const kpis = computed(() => info.value.indicators || {})
 const stats = computed(() => info.value.statistics || {})
 const tests = computed(() => info.value.statisticalTests || {})
+const periodo = computed(() => info.value.revenuePeriod === 'anual' ? 'anual' : 'mensal')
 const money = value => value == null ? 'N/D' : Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const number = value => value == null ? 'N/D' : Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 4 })
 const line = computed(() => ({ labels: (charts.value.contractsByMonth || []).map(v => v.month), datasets: [{ label: 'Contratações', data: (charts.value.contractsByMonth || []).map(v => v.count), borderColor: '#006eb7', backgroundColor: '#006eb7' }] }))
@@ -18,7 +19,7 @@ const hist = computed(() => ({ labels: (charts.value.revenueHistogram || []).map
 const scatter = computed(() => ({ datasets: [{ label: 'Clientes', data: charts.value.revenueServices || [], backgroundColor: '#006eb7' }] }))
 const levels = computed(() => ({ labels: (stats.value.byLevel || []).map(v => 'Nível ' + v.name), datasets: [{ data: (stats.value.byLevel || []).map(v => v.count), backgroundColor: ['#006eb7','#43a795','#e5a53a'] }] }))
 const options = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
-const scatterOptions = { ...options, scales: { x: { title: { display: true, text: 'Serviços distintos por cliente' }, ticks: { precision: 0 } }, y: { title: { display: true, text: 'Faturamento mensal (R$)' }, beginAtZero: true } } }
+const scatterOptions = computed(() => ({ ...options, scales: { x: { title: { display: true, text: 'Serviços distintos por cliente' }, ticks: { precision: 0 } }, y: { title: { display: true, text: 'Faturamento ' + periodo.value + ' (R$)' }, beginAtZero: true } } }))
 const groups = computed(() => (charts.value.revenueBySegment || []).filter(v => v.count))
 const max = computed(() => Math.max(...groups.value.map(v => v.max), 1))
 const pos = value => 150 + Number(value || 0) / max.value * 390
@@ -26,14 +27,14 @@ const measures = [['mean', 'Média'], ['median', 'Mediana'], ['modes', 'Moda(s)'
 const exports = computed(() => [
   ['dados_validos', info.value.validRecords || []], ['dados_invalidos', info.value.invalidRecords || []],
   ['estatistica_segmento', stats.value.bySegment || []], ['estatistica_nivel', stats.value.byLevel || []],
-  ['indicadores_dashboard', [kpis.value]], ['insights', (info.value.insights || []).map(texto => ({ texto }))],
+  ['indicadores_dashboard', [kpis.value]], ['estatistica_consultor', stats.value.byConsultant || []], ['servicos', info.value.services || []], ['top_clientes', info.value.topClients || []], ['insights', (info.value.insights || []).map(texto => ({ texto }))],
 ])
 </script>
 <template>
   <section aria-label="Ciência de dados">
     <article class="panel"><p class="kicker">CIÊNCIA DE DADOS</p><h2>Resultado do ETL</h2><p>{{ info.inputRows }} registros recebidos · {{ info.validRows }} válidos · {{ info.invalidRows }} inválidos.</p><p v-if="info.schema === 'clientes-legado'">Planilha de clientes: indicadores de contratos exigem as colunas do modelo oficial completo.</p><p v-if="info.schema === 'comercial-contratos-v1'">Os cálculos usam somente os registros válidos. Cada linha representa um cliente e seu contrato nesta importação.</p><div class="export-actions"><button v-for="[name, rows] in exports" :key="name" class="btn outline" :disabled="!rows.length" @click="baixarRelatorio(name + '.csv', rows)">↓ {{ name.replaceAll('_', ' ') }}</button></div></article>
     <div class="kpis grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-      <CardIndicador rotulo="Faturamento mensal total" :valor="money(kpis.totalRevenue)" />
+      <CardIndicador :rotulo="'Faturamento ' + periodo + ' total'" :valor="money(kpis.totalRevenue)" />
       <CardIndicador rotulo="Ticket médio" :valor="money(kpis.averageTicket)" />
       <CardIndicador rotulo="Contratos ativos" :valor="number(kpis.activeContracts)" />
       <CardIndicador rotulo="Taxa de cancelamento" :valor="kpis.cancellationRate == null ? 'N/D' : number(kpis.cancellationRate) + '%'" />
@@ -47,6 +48,7 @@ const exports = computed(() => [
       <article class="panel"><h2>Estatística descritiva</h2><dl v-if="stats.overall?.count"><template v-for="[key, label] in measures" :key="key"><dt>{{ label }}</dt><dd>{{ Array.isArray(stats.overall[key]) ? stats.overall[key].map(number).join(', ') : number(stats.overall[key]) }}</dd></template></dl><p v-else>Sem amostra válida.</p></article>
       <article class="panel"><h2>Testes estatísticos</h2><div v-for="[key, label] in [['shapiroWilk', 'Shapiro-Wilk: normalidade'], ['chiSquare', 'Qui-quadrado: segmento × nível']]" :key="key"><h3>{{ label }}</h3><p v-if="tests[key]?.available">Estatística: {{ number(tests[key].statistic) }} · p-valor: {{ tests[key].pValue?.toPrecision(4) }} · α = 0,05</p><p>{{ tests[key]?.interpretation || tests[key]?.reason || 'Não calculado neste lote.' }}</p></div></article>
     </div>
+    <article v-if="info.schema === 'carteira-anual-v1'" class="panel"><h2>Carteira anual</h2><p>Contratos identificados: {{ kpis.contractCount }} · Média de serviços por cliente: {{ number(kpis.averageServices) }} · Coeficiente de variação: {{ number(kpis.coefficientOfVariation) }}</p><p>Preço e situação ativa dos contratos não foram informados na planilha.</p><h3>Maiores clientes por faturamento anual</h3><div class="table-wrap"><table><thead><tr><th>Código</th><th>Cliente</th><th>Faturamento anual</th></tr></thead><tbody><tr v-for="c in info.topClients || []" :key="c.codigo_cliente"><td>{{ c.codigo_cliente }}</td><td>{{ c.nome_cliente }}</td><td>{{ money(c.faturamento_anual) }}</td></tr></tbody></table></div><h3>Faturamento por consultor</h3><p v-for="c in stats.byConsultant || []" :key="c.name">{{ c.name }}: {{ c.count }} clientes · {{ money(c.total) }} · média {{ money(c.mean) }}</p><h3>Serviços contratados</h3><p v-for="s in info.services || []" :key="s.name">{{ s.name }}: {{ s.count }} clientes ({{ number(s.percentage) }}%)</p><h3>Correlação entre serviços e faturamento</h3><p v-if="info.correlation?.available">Pearson: {{ number(info.correlation.pearson) }} (p={{ number(info.correlation.pValue) }}) · Spearman: {{ number(info.correlation.spearman) }} (p={{ number(info.correlation.spearmanPValue) }}). {{ info.correlation.interpretation }}</p><p v-else>{{ info.correlation?.reason }}</p><h3>Distribuição geográfica</h3><p v-for="c in info.byCity || []" :key="c.name">{{ c.name }}: {{ c.count }} clientes</p><p v-for="u in info.byState || []" :key="u.name">{{ u.name }}: {{ u.count }} clientes</p></article>
     <article class="panel"><h2>Insights da importação</h2><ul><li v-for="text in info.insights || []" :key="text">{{ text }}</li></ul><p v-if="!info.insights?.length">Dados insuficientes para gerar insights.</p></article>
   </section>
 </template>

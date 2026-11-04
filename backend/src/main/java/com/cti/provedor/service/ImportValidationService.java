@@ -16,6 +16,22 @@ public class ImportValidationService {
       String name = text(row, "nome_cliente", "razao_social", "nome", "cliente", "empresa");
       String segment = text(row, "segmento", "setor");
       String line = "Linha " + (i + 2) + ": ";
+      boolean annual = row.keySet().stream().map(this::normalize)
+          .anyMatch(Set.of("servicos_contratados", "data_contratacao")::contains);
+      if (annual) {
+        if (text(row, "consultor").isBlank() || text(row, "nivel_cliente").isBlank()
+            || text(row, "faturamento_anual").isBlank() || text(row, "servicos_contratados").isBlank())
+          throw new ExcelInvalidoException(line + "campos obrigatórios da carteira anual ausentes.");
+        if (!code.matches("[A-Za-z0-9_-]{1,60}") || !Set.of("industria", "comercio", "servicos", "saude", "educacao", "tecnologia").contains(normalize(segment)))
+          throw new ExcelInvalidoException(line + "código ou segmento anual inválido.");
+        try {
+          var date = java.time.LocalDate.parse(text(row, "data_contratacao"));
+          if (date.getYear() < 1990) throw new IllegalArgumentException();
+        } catch (RuntimeException error) { throw new ExcelInvalidoException(line + "data de contratação inválida."); }
+        String uf = text(row, "uf");
+        if ((!uf.isBlank() && !uf.matches("[A-Z]{2}")) || text(row, "cidade").length() > 120)
+          throw new ExcelInvalidoException(line + "cidade ou UF inválida.");
+      }
       if (code.isBlank() || name.isBlank() || segment.isBlank())
         throw new ExcelInvalidoException(line + "código, nome e segmento são obrigatórios.");
       String contact = text(row, "email", "email_cliente");

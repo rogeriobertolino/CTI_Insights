@@ -60,7 +60,11 @@ public class CadastroAdminService {
     if (user.getPerfil() != Perfil.USER || user.getEmail().equals(administrador))
       throw new ResponseStatusException(
           HttpStatus.FORBIDDEN, "Esta conta não pode ser alterada pela revisão de cadastros.");
-    if (user.getStatusCadastro() != StatusCadastro.PENDENTE)
+    var atual = user.getStatusCadastro();
+    boolean transicao = (atual == StatusCadastro.PENDENTE && request.decisao() != StatusCadastro.PENDENTE)
+        || (atual == StatusCadastro.APROVADO && request.decisao() == StatusCadastro.BLOQUEADO)
+        || ((atual == StatusCadastro.BLOQUEADO || atual == StatusCadastro.RECUSADO) && request.decisao() == StatusCadastro.APROVADO);
+    if (!transicao)
       throw new ResponseStatusException(
           HttpStatus.CONFLICT, "Este cadastro já foi analisado. Atualize a lista.");
     user.revisarCadastro(request.decisao(), administrador);

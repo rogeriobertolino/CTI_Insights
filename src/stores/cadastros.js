@@ -6,7 +6,7 @@ const versoes = new WeakMap()
 const sessoes = new WeakMap()
 export const useCadastrosStore = defineStore('cadastros', {
   state: () => ({
-    usuarios: [], totais: { PENDENTE: 0, APROVADO: 0, RECUSADO: 0 },
+    usuarios: [], totais: { PENDENTE: 0, APROVADO: 0, RECUSADO: 0, BLOQUEADO: 0 },
     filtro: 'PENDENTE', pagina: 0, totalPaginas: 0, total: 0,
     carregando: false, revisando: null, erro: '', mensagem: '',
   }),
@@ -35,7 +35,7 @@ export const useCadastrosStore = defineStore('cadastros', {
         if ((sessoes.get(this) || 0) !== sessao) return
         await this.carregar()
         if ((sessoes.get(this) || 0) !== sessao) return
-        this.mensagem = decisao === 'APROVADO' ? 'Cadastro de ' + user.nome + ' aprovado.' : 'Cadastro de ' + user.nome + ' recusado.'
+        this.mensagem = decisao === 'APROVADO' ? 'Cadastro de ' + user.nome + ' aprovado.' : 'Acesso de ' + user.nome + (decisao === 'BLOQUEADO' ? ' bloqueado.' : ' recusado.')
       } catch (error) {
         if ((sessoes.get(this) || 0) !== sessao) return
         if (error.response?.status === 409) await this.carregar()

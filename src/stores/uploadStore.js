@@ -4,6 +4,7 @@ import { dataContrato } from '../utils/dataContrato.js'
 import { parseFaturamento } from '../utils/faturamento.js'
 import { enviarPlanilha } from '../services/analysis.js'
 import { dataStore } from './dataStore.js'
+import { CAMPOS_ANUAIS, ehAnual, tratarAnual, validarAnual } from '../utils/planilhaAnual.js'
 
 export const LIMITE_ARQUIVO_BYTES = 5 * 1024 * 1024
 export const LIMITE_REGISTROS = 10000
@@ -80,7 +81,7 @@ function sugestaoNome(valor) {
 }
 
 function lerAba(workbook) {
-  const nomeAba = workbook.SheetNames[0]
+  const nomeAba = workbook.SheetNames.find(n => n.toLowerCase() === 'upload_clientes') || workbook.SheetNames[0]
   const aba = workbook.Sheets[nomeAba]
   if (!aba?.['!ref']) throw new Error('A primeira aba está vazia. Inclua os cabeçalhos e ao menos um registro.')
   const area = XLSX.utils.decode_range(aba['!fullref'] || aba['!ref'])
@@ -100,7 +101,7 @@ function lerAba(workbook) {
   }
   const baseComercial = OBRIGATORIAS_BASE_COMERCIAL.every((coluna) => cabecalhos.includes(coluna))
   const contratos = ['valor_servico', 'status_contrato', 'data_inicio'].some(c => cabecalhos.includes(c))
-  const obrigatorias = contratos ? ['codigo', 'nome', 'consultor', 'segmento', 'nivel', 'faturamento', 'servico', 'valor_servico', 'status_contrato', 'data_inicio'] : baseComercial ? OBRIGATORIAS_BASE_COMERCIAL : OBRIGATORIAS
+  const obrigatorias = ehAnual(cabecalhos) ? CAMPOS_ANUAIS : contratos ? ['codigo', 'nome', 'consultor', 'segmento', 'nivel', 'faturamento', 'servico', 'valor_servico', 'status_contrato', 'data_inicio'] : baseComercial ? OBRIGATORIAS_BASE_COMERCIAL : OBRIGATORIAS
   const ausentes = obrigatorias.filter((coluna) => !cabecalhos.includes(coluna))
   if (ausentes.length) throw new Error(`Colunas obrigatórias ausentes: ${ausentes.join(', ')}. Utilize o modelo disponível na tela de upload.`)
   const registros = []
@@ -111,7 +112,7 @@ function lerAba(workbook) {
     const dados = Object.create(null)
     cabecalhos.forEach((campo, coluna) => {
       const cell = aba[XLSX.utils.encode_cell({ r: indice, c: coluna })]
-      if (campo === 'data_inicio' && cell?.t === 'n' && XLSX.SSF.is_date(cell.z || '')) {
+      if (['data_inicio','data_contratacao'].includes(campo) && cell?.t === 'n' && XLSX.SSF.is_date(cell.z || '')) {
         const date = XLSX.SSF.parse_date_code(cell.v)
         dados[campo] = date ? `${String(date.y).padStart(4,'0')}-${String(date.m).padStart(2,'0')}-${String(date.d).padStart(2,'0')}` : ''
         return
@@ -138,6 +139,7 @@ export const useUploadStore = defineStore('upload', {
     dadosOriginais: [],
     dadosTratados: [],
     erros: [],
+    avisos: [],
     cabecalhos: [],
     carregando: false,
     erroArquivo: '',
@@ -206,6 +208,7 @@ export const useUploadStore = defineStore('upload', {
     },
 
     tratarLinha(linha) {
+      if (ehAnual(this.cabecalhos)) return tratarAnual(linha)
       const dados = Object.fromEntries(Object.entries(linha).map(([campo, valor]) => [campo, semEspacosExtras(valor)]))
       const segmento = texto(dados.segmento).toLocaleUpperCase('pt-BR')
       const nivel = texto(dados.nivel ?? dados.nivel_cliente).toLocaleUpperCase('pt-BR')
@@ -268,7 +271,7 @@ export const useUploadStore = defineStore('upload', {
             // raw evita perder zeros iniciais e reinterpretar datas em CSV.
             workbook = XLSX.read(csv, { type: 'string', raw: true, sheetRows: LIMITE_REGISTROS + 2 })
           } else {
-            workbook = XLSX.read(buffer, { type: 'array', sheets: 0, cellNF: true, sheetRows: LIMITE_REGISTROS + 2 })
+            workbook = XLSX.read(buffer, { type: 'array', cellNF: true, sheetRows: LIMITE_REGISTROS + 2 })
           }
         } catch {
           throw new Error('Não foi possível ler a planilha. O arquivo pode estar corrompido ou protegido por senha.')
@@ -310,7 +313,7 @@ export const useUploadStore = defineStore('upload', {
       const versao = versoes.get(this)
       this.enviando = true
       try {
-        const resultado = await enviarPlanilha(this.prepararArquivoEnvio())
+        const resultado = await enviarPlanilha(this.prepararArquivoEnvio(), { linhasRecebidas: this.totalRegistros, linhasDescartadas: this.totalComErro, linhasComAviso: new Set(this.avisos.filter(a => !this.erros.some(e => e.linha === a.linha)).map(a => a.linha)).size })
         if (versoes.get(this) !== versao) return null
         this.analiseSalva = resultado
         dataStore.analysis = resultado
@@ -329,6 +332,12 @@ export const useUploadStore = defineStore('upload', {
     },
 
     validarDados() {
+      if (ehAnual(this.cabecalhos)) {
+        const resultado = validarAnual(this.registros)
+        this.erros = resultado.erros; this.avisos = resultado.avisos
+        this.tratarDados(); this.validadoEm = new Date().toISOString()
+        return this.erros
+      }
       const erros = []
       const porCodigo = new Map()
       const contratos = ['valor_servico', 'status_contrato', 'data_inicio'].some(c => this.cabecalhos.includes(c))

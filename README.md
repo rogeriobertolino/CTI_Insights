@@ -1,5 +1,9 @@
 # CTI Insights
 
+## Carteira anual integrada
+
+O modelo do material de referência também é aceito: oito campos obrigatórios, serviços múltiplos, data da contratação, cidade/UF e faturamento anual. Inclui avisos separados de erros, contratos pendentes com preço não informado, ranking e correlações, matrícula/turma e bloqueio/reaprovação de acesso. Consulte o [contrato integrado](docs/Contrato_Carteira_Anual.md) e a [planilha original de exemplo](sample-data/dados.xlsx). O formato mensal e os CRUDs existentes continuam disponíveis.
+
 Pipeline de análise de dados comerciais:
 
 `Excel → Vue 3 → Spring Boot → Python → PostgreSQL → Chart.js`

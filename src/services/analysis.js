@@ -12,9 +12,10 @@ analysisClient.interceptors.response.use(response => {
     ? 'O processamento excedeu o tempo limite. Confira o último resultado antes de tentar novamente.'
     : 'Não foi possível conectar à API. Verifique se o backend está em execução e tente novamente.'))
 })
-export async function enviarPlanilha(arquivo) {
+export async function enviarPlanilha(arquivo, origem = {}) {
   const body = new FormData()
   body.append('file', arquivo)
+  for (const [key, value] of Object.entries(origem)) body.append(key, String(value))
   return (await analysisClient.post('/imports', body)).data
 }
 export async function buscarUltimaAnalise() {

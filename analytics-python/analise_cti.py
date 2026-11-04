@@ -33,6 +33,8 @@ def executar(path, output, enviar=None):
     salvar_csv(output/"saidas/estatistica_segmento.csv", analytics["statistics"]["bySegment"])
     salvar_csv(output/"saidas/estatistica_nivel.csv", analytics["statistics"]["byLevel"])
     salvar_csv(output/"saidas/indicadores_dashboard.csv", [analytics["indicators"]])
+    for name, rows_extra in {'estatistica_consultor':analytics['statistics'].get('byConsultant',[]),'top_clientes':analytics.get('topClients',[]),'servicos':analytics.get('services',[]),'correlacao':[analytics['correlation']] if analytics.get('correlation') else []}.items():
+        if rows_extra: salvar_csv(output/'saidas'/f'{name}.csv', rows_extra)
     (output/"saidas/insights.txt").write_text("\n".join(analytics["insights"]), encoding="utf-8")
     (output/"saidas/resultado.json").write_text(json.dumps(analytics, ensure_ascii=False, allow_nan=False, indent=2), encoding="utf-8")
     salvar_graficos(rows, analytics["charts"], output/"graficos")

@@ -2,7 +2,7 @@
 import { onMounted } from 'vue'
 import { useCadastrosStore } from '../stores/cadastros.js'
 const store = useCadastrosStore()
-const rotulos = { PENDENTE: 'Pendente', APROVADO: 'Aprovado', RECUSADO: 'Recusado' }
+const rotulos = { PENDENTE: 'Pendente', APROVADO: 'Aprovado', RECUSADO: 'Recusado', BLOQUEADO: 'Bloqueado' }
 const data = valor => valor ? new Date(valor).toLocaleString('pt-BR') : '—'
 onMounted(() => store.carregar('PENDENTE', 0))
 </script>
@@ -21,7 +21,7 @@ onMounted(() => store.carregar('PENDENTE', 0))
         <div><h2>Solicitações de cadastro</h2><p class="validation-copy">O usuário poderá entrar e salvar análises após a sua aprovação.</p></div>
         <label class="admin-filter" for="cadastro-status">Situação
           <select id="cadastro-status" :value="store.filtro" :disabled="store.carregando || store.revisando !== null" @change="store.carregar($event.target.value, 0)">
-            <option value="PENDENTE">Pendentes</option><option value="APROVADO">Aprovados</option><option value="RECUSADO">Recusados</option><option value="">Todos</option>
+            <option value="PENDENTE">Pendentes</option><option value="APROVADO">Aprovados</option><option value="RECUSADO">Recusados</option><option value="BLOQUEADO">Bloqueados</option><option value="">Todos</option>
           </select>
         </label>
       </div>
@@ -38,7 +38,7 @@ onMounted(() => store.carregar('PENDENTE', 0))
           <thead><tr><th scope="col">Nome e e-mail</th><th scope="col">Solicitado em</th><th scope="col">Situação</th><th scope="col">Revisão</th><th scope="col">Ações</th></tr></thead>
           <tbody>
             <tr v-for="usuario in store.usuarios" :key="usuario.id">
-              <td><strong>{{ usuario.nome }}</strong><span>{{ usuario.email }}</span></td>
+              <td><strong>{{ usuario.nome }}</strong><span>{{ usuario.email }}</span><small v-if="usuario.matricula || usuario.turma">Matrícula: {{ usuario.matricula || '—' }} · Turma: {{ usuario.turma || '—' }}</small></td>
               <td>{{ data(usuario.cadastradoEm) }}</td>
               <td><span class="validation-badge" :class="{ invalid: usuario.statusCadastro === 'RECUSADO', pending: usuario.statusCadastro === 'PENDENTE' }">{{ rotulos[usuario.statusCadastro] }}</span></td>
               <td><template v-if="usuario.revisadoEm"><span>{{ usuario.revisadoPor }}</span><small>{{ data(usuario.revisadoEm) }}</small></template><span v-else>—</span></td>
@@ -47,7 +47,7 @@ onMounted(() => store.carregar('PENDENTE', 0))
                   <button class="btn primary" :aria-label="'Aprovar cadastro de ' + usuario.nome" :disabled="store.revisando !== null" @click="store.revisar(usuario.id, 'APROVADO')">{{ store.revisando === usuario.id ? 'Processando…' : 'Aprovar' }}</button>
                   <button class="btn outline refuse" :aria-label="'Recusar cadastro de ' + usuario.nome" :disabled="store.revisando !== null" @click="store.revisar(usuario.id, 'RECUSADO')">Recusar</button>
                 </div>
-                <span v-else class="validation-copy">Analisado</span>
+                <div v-else class="admin-actions"><button v-if="usuario.statusCadastro === 'APROVADO'" class="btn outline refuse" :disabled="store.revisando !== null" @click="store.revisar(usuario.id, 'BLOQUEADO')">Bloquear acesso</button><button v-else class="btn primary" :disabled="store.revisando !== null" @click="store.revisar(usuario.id, 'APROVADO')">Reaprovar acesso</button></div>
               </td>
             </tr>
           </tbody>
@@ -63,7 +63,7 @@ onMounted(() => store.carregar('PENDENTE', 0))
 </template>
 
 <style scoped>
-.admin-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.admin-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .admin-filter { display: grid; gap: 8px; color: #41525d; font-size: .85rem; }
 .admin-filter select { border: 1px solid var(--border); border-radius: 7px; padding: 9px 12px; background: white; }
 .admin-actions { display: flex; gap: 8px; flex-wrap: wrap; }

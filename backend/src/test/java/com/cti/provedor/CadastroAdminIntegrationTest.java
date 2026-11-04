@@ -30,6 +30,28 @@ import org.springframework.test.web.servlet.MockMvc;
     })
 @AutoConfigureMockMvc
 class CadastroAdminIntegrationTest {
+  @Test
+  void bloqueioRevogaTokenEReaprovacaoRestauraAcesso() throws Exception {
+    var admin = conta(true, false);
+    var comum = conta(false, false);
+    String token = authorization(comum);
+    mvc.perform(patch("/api/admin/cadastros/" + comum.getId()).header("Authorization", authorization(admin))
+        .contentType("application/json").content(decisao("BLOQUEADO")))
+        .andExpect(status().isOk()).andExpect(jsonPath("statusCadastro").value("BLOQUEADO"));
+    mvc.perform(get("/api/auth/me").header("Authorization", token)).andExpect(status().isForbidden());
+    mvc.perform(patch("/api/admin/cadastros/" + comum.getId()).header("Authorization", authorization(admin))
+        .contentType("application/json").content(decisao("APROVADO"))).andExpect(status().isOk());
+    mvc.perform(get("/api/auth/me").header("Authorization", token)).andExpect(status().isOk());
+  }
+
+  @Test
+  void cadastroPreservaMatriculaETurmaSemMudarPerfil() throws Exception {
+    var body=mapper.writeValueAsString(Map.of("nome","Aluno Exemplo","email","aluno-"+UUID.randomUUID()+"@example.com","senha","senha-teste-123","matricula","12345","turma","DS-2026"));
+    mvc.perform(post("/api/auth/cadastro").contentType("application/json").content(body))
+        .andExpect(status().isCreated()).andExpect(jsonPath("matricula").value("12345"))
+        .andExpect(jsonPath("turma").value("DS-2026")).andExpect(jsonPath("perfil").value("USER"))
+        .andExpect(jsonPath("statusCadastro").value("PENDENTE"));
+  }
   @Autowired MockMvc mvc;
   @Autowired UsuarioRepository users;
   @Autowired PasswordEncoder passwords;

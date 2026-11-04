@@ -16,9 +16,12 @@ public class ImportController {
   }
 
   @PostMapping("/imports")
-  public ResponseEntity<Map<String, Object>> upload(@RequestPart("file") MultipartFile file)
+  public ResponseEntity<Map<String, Object>> upload(@RequestPart("file") MultipartFile file,
+      @RequestParam(defaultValue = "-1") int linhasRecebidas,
+      @RequestParam(defaultValue = "0") int linhasDescartadas,
+      @RequestParam(defaultValue = "0") int linhasComAviso)
       throws Exception {
-    return ResponseEntity.ok(service.process(file));
+    return ResponseEntity.ok(service.process(file, linhasRecebidas, linhasDescartadas, linhasComAviso));
   }
 
   @GetMapping("/dashboard/latest")

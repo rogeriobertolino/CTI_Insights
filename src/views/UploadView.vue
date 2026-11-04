@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { useUploadStore } from '../stores/uploadStore.js'
 import { baixarModeloAula as baixarModeloOficial } from '../utils/modeloPlanilha.js'
 import PreviaPlanilha from '../components/PreviaPlanilha.vue'
+import { baixarModeloAnual } from '../utils/modeloPlanilha.js'
 
 const store = useUploadStore()
 const arquivo = computed(() => store.arquivo)
@@ -53,6 +54,7 @@ function limpar() {
         <p>Use um código único para cada cliente. Evite espaços extras e nomes inteiramente em maiúsculas ou minúsculas.</p>
         <p>O arquivo contém dados de exemplo. Substitua-os pelos seus clientes antes de validar.</p>
         <button class="btn outline" :disabled="store.carregando || store.enviando" @click="baixarModeloOficial">↓ Baixar modelo oficial</button>
+        <h3>Carteira anual</h3><p>Também é aceito o modelo com serviços separados por ponto e vírgula. São obrigatórios código, nome, consultor, segmento, nível, faturamento anual, serviços e data da contratação. Cidade e UF são opcionais. Ajustes de padronização geram avisos e a primeira ocorrência de cada código é mantida.</p><button class="btn outline" @click="baixarModeloAnual">↓ Baixar modelo de carteira anual</button>
       </aside>
     </div>
     <PreviaPlanilha />

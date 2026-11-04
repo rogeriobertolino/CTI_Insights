@@ -5,6 +5,9 @@ from insights import indicadores, gerar_insights
 from graficos import series_graficos
 
 def executar_etl(records, headers):
+    from carteira_anual import processar_anual
+    if any(chave(h) in ("servicos_contratados", "data_contratacao") for h in headers):
+        return processar_anual(records, headers)
     fields = {ALIASES.get(chave(h), chave(h)) for h in headers}
     contractual = bool(fields & CONTRACT_FIELDS)
     cleaned = limpar_dados(records)

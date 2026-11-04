@@ -17,9 +17,15 @@ public class Usuario {
 
   @Column(nullable = false, length = 100)
   private String senhaHash;
+  @Column(length = 30) private String matricula;
+  @Column(length = 60) private String turma;
+  public String getMatricula() { return matricula; }
+  public String getTurma() { return turma; }
+  public void setDadosAcademicos(String matricula, String turma) { this.matricula = matricula; this.turma = turma; }
 
   @Enumerated(EnumType.STRING)
-  @Column(nullable = false, columnDefinition = "varchar(20) default 'USER'")
+  @Column(nullable = false, columnDefinition = "varchar(20)")
+  @org.hibernate.annotations.ColumnDefault("'USER'")
   private Perfil perfil = Perfil.USER;
 
   public Perfil getPerfil() {
@@ -28,10 +34,12 @@ public class Usuario {
 
   // DEFAULT APROVADO preserva os acessos que já existiam antes desta funcionalidade.
   @Enumerated(EnumType.STRING)
-  @Column(nullable = false, columnDefinition = "varchar(20) default 'APROVADO'")
+  @Column(nullable = false, columnDefinition = "varchar(20)")
+  @org.hibernate.annotations.ColumnDefault("'APROVADO'")
   private StatusCadastro statusCadastro = StatusCadastro.APROVADO;
 
-  @Column(nullable = false, columnDefinition = "timestamp with time zone default CURRENT_TIMESTAMP")
+  @Column(nullable = false, columnDefinition = "timestamp with time zone")
+  @org.hibernate.annotations.ColumnDefault("CURRENT_TIMESTAMP")
   private java.time.OffsetDateTime cadastradoEm = java.time.OffsetDateTime.now();
 
   private java.time.OffsetDateTime revisadoEm;

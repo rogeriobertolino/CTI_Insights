@@ -11,6 +11,7 @@ export function authError(error) {
 export async function cadastrarUsuario(form) {
   return (await authClient.post('/cadastro', {
     nome: form.name.trim(), email: form.email.trim().toLowerCase(), senha: form.password,
+    ...(form.matricula ? {matricula: form.matricula.trim()} : {}), ...(form.turma ? {turma: form.turma.trim()} : {}),
   })).data
 }
 export async function entrar(email, senha) {

@@ -34,10 +34,14 @@ public class ImportService {
   }
 
   public Map<String, Object> process(MultipartFile file) throws Exception {
+    return process(file, -1, 0, 0);
+  }
+
+  public Map<String, Object> process(MultipartFile file, int total, int descartadas, int avisos) throws Exception {
     audit(file, TipoEventoTelemetria.UPLOAD, StatusTelemetria.SUCESSO);
     try {
       // A transação termina no serviço delegado antes de registrar o resultado.
-      var result = processing.process(file);
+      var result = processing.process(file, total, descartadas, avisos);
       audit(file, TipoEventoTelemetria.PROCESSAMENTO, StatusTelemetria.SUCESSO);
       return result;
     } catch (Exception error) {

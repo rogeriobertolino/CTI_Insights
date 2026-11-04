@@ -42,6 +42,11 @@ public class ImportProcessingService {
 
   @Transactional(rollbackFor = Exception.class)
   public Map<String, Object> process(MultipartFile file) throws Exception {
+    return process(file, -1, 0, 0);
+  }
+
+  @Transactional(rollbackFor = Exception.class)
+  public Map<String, Object> process(MultipartFile file, int total, int descartadas, int avisos) throws Exception {
     String name = file.getOriginalFilename();
     if (file.isEmpty() || name == null || !name.toLowerCase(Locale.ROOT).endsWith(".xlsx"))
       throw new ExcelInvalidoException("Envie um arquivo XLSX válido.");
@@ -56,6 +61,28 @@ public class ImportProcessingService {
       List<Map<String, Object>> imported =
           (List<Map<String, Object>>) result.getOrDefault("records", List.of());
       validation.validate(imported);
+      var analytics = result.get("analytics") instanceof Map<?, ?> sourceAnalytics
+          ? new LinkedHashMap<String, Object>((Map<String, Object>) sourceAnalytics) : null;
+      if (analytics != null) {
+        result.put("analytics", analytics);
+        int received = ((Number) analytics.getOrDefault("inputRows", imported.size())).intValue();
+        if (total < -1 || descartadas < 0 || avisos < 0 || total > 10000
+            || (total >= 0 && total != received + descartadas) || avisos > received
+            || (total == -1 && (descartadas != 0 || avisos != 0)))
+          throw new ExcelInvalidoException("Contagens de origem inconsistentes.");
+        var origin = new LinkedHashMap<String, Object>();
+        origin.put("linhasRecebidas", total < 0 ? received : total);
+        origin.put("linhasDescartadasNoNavegador", descartadas);
+        origin.put("linhasComAvisoNoNavegador", avisos);
+        origin.put("informadasPeloNavegador", total >= 0);
+        result.put("origem", origin);
+        analytics.put("inputRows", total < 0 ? received : total);
+        analytics.put("invalidRows", ((Number) analytics.getOrDefault("invalidRows", 0)).intValue() + descartadas);
+        if ("carteira-anual-v1".equals(analytics.get("schema"))) {
+          // As inválidas ficam no navegador; no lote persistimos apenas as contagens.
+          analytics.put("invalidRecords", List.of());
+        }
+      }
       List<ImportedRecord> entities = new ArrayList<>();
       for (int i = 0; i < imported.size(); i++) {
         var row = imported.get(i);
@@ -84,8 +111,8 @@ public class ImportProcessingService {
               + " clientes criados.");
       insights.save(insight);
       Object analyticsValue = result.get("analytics");
-      if (analyticsValue instanceof Map<?, ?> analytics
-          && analytics.get("insights") instanceof List<?> texts) {
+      if (analyticsValue instanceof Map<?, ?> analyticsResult
+          && analyticsResult.get("insights") instanceof List<?> texts) {
         for (Object text : texts) {
           var generated = new Insight();
           generated.update(null, null, "CIENCIA_DADOS", "Lote " + batch.getId() + ": " + text);

@@ -16,4 +16,10 @@ public record ClienteRequest(
     @NotNull @DecimalMin("0.00") @Digits(integer = 13, fraction = 2) BigDecimal faturamentoAnual,
     @NotNull NivelCliente nivel,
     StatusCliente status,
-    @Email @Size(max = 254) String email) {}
+    @Email @Size(max = 254) String email,
+    @Size(max = 120) String cidade,
+    @Pattern(regexp = "[A-Za-z]{2}") String uf) {
+  public ClienteRequest(String codigoCti, Long consultorId, String nomeEmpresa, String segmento, BigDecimal faturamentoAnual, NivelCliente nivel, StatusCliente status, String email) {
+    this(codigoCti, consultorId, nomeEmpresa, segmento, faturamentoAnual, nivel, status, email, null, null);
+  }
+}

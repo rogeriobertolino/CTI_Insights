@@ -13,7 +13,7 @@ public record CadastroAdminResponse(
     StatusCadastro statusCadastro,
     OffsetDateTime cadastradoEm,
     OffsetDateTime revisadoEm,
-    String revisadoPor) {
+    String revisadoPor, String matricula, String turma) {
   public static CadastroAdminResponse from(Usuario u) {
     return new CadastroAdminResponse(
         u.getId(),
@@ -23,6 +23,6 @@ public record CadastroAdminResponse(
         u.getStatusCadastro(),
         u.getCadastradoEm(),
         u.getRevisadoEm(),
-        u.getRevisadoPor());
+        u.getRevisadoPor(), u.getMatricula(), u.getTurma());
   }
 }

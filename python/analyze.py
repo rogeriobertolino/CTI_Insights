@@ -111,7 +111,7 @@ def cell_text(cell):
 def read_rows(path):
     workbook = load_workbook(path, read_only=True, data_only=True)
     try:
-        sheet = workbook["dados_importacao"] if "dados_importacao" in workbook.sheetnames else workbook.worksheets[0]
+        sheet = workbook["dados_importacao"] if "dados_importacao" in workbook.sheetnames else (workbook["upload_clientes"] if "upload_clientes" in workbook.sheetnames else workbook.worksheets[0])
         if (sheet.max_row or 0) > 10001 or (sheet.max_column or 0) > 100:
             raise ValueError("A planilha deve ter até 10.000 registros e 100 colunas.")
         matrix = [[cell_text(cell) for cell in row] for row in sheet.iter_rows()]
@@ -140,7 +140,7 @@ def analyze(path):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "analytics-python"))
     from pipeline import executar_etl
     analytics = executar_etl([dict(zip(headers, row)) for row in rows], headers)
-    if analytics["schema"] == "comercial-contratos-v1":
+    if analytics["schema"] in ("comercial-contratos-v1", "carteira-anual-v1"):
         headers = list(analytics["validRecords"][0]) if analytics["validRecords"] else headers
         rows = [[str(record.get(h, "")) for h in headers] for record in analytics["validRecords"]]
     indexes = {

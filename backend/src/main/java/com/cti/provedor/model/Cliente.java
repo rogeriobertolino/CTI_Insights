@@ -54,6 +54,11 @@ public class Cliente {
 
   @Column(length = 254)
   private String email;
+  @Column(length = 120) private String cidade;
+  @Column(length = 2) private String uf;
+  public String getCidade() { return cidade; }
+  public String getUf() { return uf; }
+  public void setLocalidade(String cidade, String uf) { this.cidade = cidade; this.uf = uf; }
 
   public String getEmail() {
     return email;

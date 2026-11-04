@@ -38,6 +38,15 @@ export function baixarModeloAula() {
   baixarArquivo(new File([bytes], 'CTI_Insights_modelo_oficial.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }))
 }
 
+export function baixarModeloAnual() {
+  const workbook = utils.book_new()
+  utils.book_append_sheet(workbook, utils.aoa_to_sheet([
+    ['codigo_cliente','nome_cliente','consultor','segmento','nivel_cliente','faturamento_anual','servicos_contratados','data_contratacao','cidade','uf'],
+    ['CTI001','Empresa Exemplo','Ana Souza','Indústria','A',1850000,'Internet Dedicada;Firewall','2025-01-15','Campinas','SP'],
+  ]), 'upload_clientes')
+  baixarArquivo(new File([write(workbook, {type:'array',bookType:'xlsx'})], 'CTI_modelo_carteira_anual.xlsx', {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}))
+}
+
 function baixarArquivo(arquivo) {
   const url = URL.createObjectURL(arquivo)
   const link = document.createElement('a')

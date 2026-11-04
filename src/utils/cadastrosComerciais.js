@@ -13,6 +13,8 @@ export const cadastrosComerciais = {
       { nome: 'nomeEmpresa', rotulo: 'Nome da empresa', obrigatorio: true, max: 180 },
       { nome: 'segmento', rotulo: 'Segmento', obrigatorio: true, max: 100 },
       { nome: 'email', rotulo: 'E-mail de contato', tipo: 'email', max: 254 },
+      { nome: 'cidade', rotulo: 'Cidade', max: 120 },
+      { nome: 'uf', rotulo: 'UF', max: 2 },
       { nome: 'faturamentoAnual', rotulo: 'Faturamento anual (R$)', tipo: 'moeda', obrigatorio: true },
       { nome: 'nivel', rotulo: 'Nível', opcoes: ['A', 'B', 'C'], obrigatorio: true },
       { nome: 'status', rotulo: 'Situação', opcoes: ['ATIVO', 'INATIVO'], obrigatorio: true },
