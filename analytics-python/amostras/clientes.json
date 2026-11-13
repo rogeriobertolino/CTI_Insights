@@ -1,0 +1,6 @@
+[
+  {"codigoCliente": "CTI001", "nomeCliente": "Metalúrgica Horizonte", "consultor": "ana souza", "segmento": "IND.", "nivelCliente": "A", "faturamentoAnual": 1850000, "servicosContratados": "Internet Dedicada;Firewall", "dataContratacao": "2025-01-15", "cidade": "Campinas", "uf": "SP"},
+  {"codigoCliente": "CTI002", "nomeCliente": "Comercial Vitória", "consultor": "carlos lima", "segmento": "Comercio", "nivelCliente": "b", "faturamentoAnual": "780.000,00", "servicosContratados": "Link Empresarial", "dataContratacao": "2025-02-03", "cidade": "Hortolândia", "uf": "sp"},
+  {"codigoCliente": "CTI003", "nomeCliente": "Logística Rápida", "consultor": "ANA SOUZA", "segmento": "SERVIÇOS", "nivelCliente": "B", "faturamentoAnual": 1250000, "servicosContratados": "Internet Dedicada;Backup", "dataContratacao": "15/02/2025", "cidade": "Sumaré", "uf": "SP"},
+  {"codigoCliente": "CTI004", "nomeCliente": "Clínica Vida", "consultor": "Paula Reis", "segmento": "saude", "nivelCliente": "C", "faturamentoAnual": 420000, "servicosContratados": "Backup;Firewall;Link Empresarial", "dataContratacao": "2025-03-10", "cidade": "", "uf": "SP"}
+]

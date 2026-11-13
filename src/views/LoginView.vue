@@ -26,6 +26,7 @@ async function login() {
           <p v-if="auth.erro" class="error" role="alert">{{ auth.erro }}</p>
           <button class="btn primary" :disabled="auth.carregando">{{ auth.carregando ? 'Entrando…' : 'Acessar plataforma →' }}</button>
         </form>
+        <p class="auth-switch"><RouterLink to="/recuperar-senha">Esqueci minha senha</RouterLink></p>
         <p class="auth-switch">Ainda não tem conta? <RouterLink to="/cadastro">Cadastre-se</RouterLink></p>
         <p class="auth-switch"><RouterLink to="/app/upload">Validar planilha sem entrar</RouterLink></p>
       </div>

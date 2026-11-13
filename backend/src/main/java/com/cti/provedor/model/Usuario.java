@@ -17,6 +17,10 @@ public class Usuario {
 
   @Column(nullable = false, length = 100)
   private String senhaHash;
+  @Column(length = 64)
+  private String resetPasswordTokenHash;
+  private java.time.OffsetDateTime resetPasswordExpiresAt;
+  private java.time.OffsetDateTime resetPasswordRequestedAt;
   @Column(length = 30) private String matricula;
   @Column(length = 60) private String turma;
   public String getMatricula() { return matricula; }
@@ -91,6 +95,36 @@ public class Usuario {
 
   public String getEmail() {
     return email;
+  }
+
+  public void iniciarRedefinicaoSenha(
+      String tokenHash, java.time.OffsetDateTime expiraEm, java.time.OffsetDateTime solicitadoEm) {
+    resetPasswordTokenHash = tokenHash;
+    resetPasswordExpiresAt = expiraEm;
+    resetPasswordRequestedAt = solicitadoEm;
+  }
+
+  public java.time.OffsetDateTime getResetPasswordRequestedAt() {
+    return resetPasswordRequestedAt;
+  }
+
+  public void redefinirSenha(String novaSenhaHash) {
+    senhaHash = novaSenhaHash;
+    limparRedefinicaoSenha();
+  }
+
+  public void limparRedefinicaoSenha() {
+    resetPasswordTokenHash = null;
+    resetPasswordExpiresAt = null;
+    resetPasswordRequestedAt = null;
+  }
+
+  public String getResetPasswordTokenHash() {
+    return resetPasswordTokenHash;
+  }
+
+  public java.time.OffsetDateTime getResetPasswordExpiresAt() {
+    return resetPasswordExpiresAt;
   }
 
   @com.fasterxml.jackson.annotation.JsonIgnore

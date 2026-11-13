@@ -10,6 +10,7 @@ const auth = useAuthStore()
       <RouterLink to="/app/upload"><b>⇧</b> Validar planilha</RouterLink>
       <RouterLink to="/app/relatorios"><b>▤</b> Relatório de validação</RouterLink>
       <small>ANÁLISES NO SERVIDOR</small>
+      <RouterLink to="/app/dashboard"><b>▥</b> Dashboard do lote (ETL)</RouterLink>
       <RouterLink to="/app/graficos"><b>▥</b> Dashboard</RouterLink>
       <RouterLink to="/app/historico"><b>▤</b> Histórico de importações</RouterLink>
       <RouterLink to="/app/importacao-servidor"><b>⇧</b> Importação integrada</RouterLink>
@@ -18,6 +19,10 @@ const auth = useAuthStore()
         <small>ADMINISTRAÇÃO</small>
         <RouterLink to="/app/gestao"><b>▤</b> Gestão comercial</RouterLink>
         <RouterLink to="/app/admin/cadastros"><b>✓</b> Autorizar cadastros</RouterLink>
+      </template>
+      <template v-if="auth.usuario">
+        <small>MINHA CONTA</small>
+        <RouterLink to="/app/conta/senha"><b>✎</b> Alterar senha</RouterLink>
       </template>
     </nav>
     <footer><span>● Sistema operacional</span><small>Versão 1.0.0 · MVP</small></footer>

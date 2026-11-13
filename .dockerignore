@@ -8,6 +8,9 @@ backend/.github
 .env
 .env.*
 .venv
+.venv-analytics
+**/.env
+**/.env.*
 **/__pycache__
 *.log
 .runtime

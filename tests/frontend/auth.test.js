@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { createPinia, setActivePinia } from 'pinia'
-import { authClient, cadastrarUsuario, entrar, usuarioAtual, sair } from '../../src/services/auth.js'
+import { alterarSenha, authClient, cadastrarUsuario, entrar, usuarioAtual, sair } from '../../src/services/auth.js'
 import { obterToken, limparToken, salvarToken } from '../../src/services/token.js'
 import { useAuthStore } from '../../src/stores/auth.js'
 
@@ -72,4 +72,15 @@ test('login sem token não cria acesso; sair funciona sem rede', async t => {
   authClient.defaults.adapter = async () => { throw new Error('offline') }
   await sair()
   assert.equal(obterToken(), null)
+})
+test('alterar senha envia JWT com senha atual e nova', async t => {
+  adapter(t, async config => {
+    assert.equal(config.url, '/alterar-senha')
+    assert.equal(config.headers.get('Authorization'), 'Bearer jwt-valido')
+    assert.deepEqual(JSON.parse(config.data), { senhaAtual: 'senha-antiga', novaSenha: 'senha-nova-123' })
+    return { ...response(config, ''), status: 204 }
+  })
+  salvarToken('jwt-valido')
+  await alterarSenha('senha-antiga', 'senha-nova-123')
+  assert.equal(obterToken(), 'jwt-valido')
 })

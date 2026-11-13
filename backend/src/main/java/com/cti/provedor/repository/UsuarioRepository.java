@@ -9,6 +9,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
   Optional<Usuario> findByEmail(String email);
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query(
+      "select u from Usuario u where u.resetPasswordTokenHash=:tokenHash")
+    Optional<Usuario> findByResetPasswordTokenHashForUpdate(
+      @org.springframework.data.repository.query.Param("tokenHash") String tokenHash);
+
   boolean existsByEmail(String email);
 
   org.springframework.data.domain.Page<Usuario> findByPerfil(

@@ -1,3 +1,13 @@
 -r ../python/requirements.txt
+# API do Python (api.py)
+fastapi==0.162.2
+uvicorn==0.54.0
+# Banco: SQLAlchemy + driver do PostgreSQL (banco.py) e leitura do .env (config.py)
+SQLAlchemy==2.1.8
+psycopg[binary]==3.3.8
+python-dotenv==1.2.4
+# Gráficos PNG e cliente HTTP do pipeline antigo (analise_cti.py)
 matplotlib==3.10.8
 requests==2.34.2
+# Testes da API (TestClient)
+httpx==0.28.1

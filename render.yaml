@@ -17,6 +17,10 @@ services:
         sync: false
       - key: CORS_ORIGIN
         sync: false
+      - key: ETL_URL
+        sync: false
+      - key: ETL_API_KEY
+        sync: false
       - key: PYTHON_EXECUTABLE
         value: python3
       - key: PYTHON_SCRIPT
@@ -25,3 +29,17 @@ services:
         value: native
       - key: PYTHON_TIMEOUT_SECONDS
         value: "120"
+  - type: web
+    name: cti-insights-etl
+    runtime: docker
+    dockerfilePath: ./analytics-python/Dockerfile.api
+    dockerContext: .
+    plan: free
+    healthCheckPath: /saude
+    envVars:
+      - key: PORT
+        value: "8000"
+      - key: DATABASE_URL
+        sync: false
+      - key: ETL_API_KEY
+        sync: false

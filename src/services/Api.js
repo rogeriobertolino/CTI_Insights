@@ -6,7 +6,7 @@ export function criarCliente(baseURL, timeout = 15000) {
   const address = /^https?:\/\//i.test(baseURL) ? baseURL : origin + baseURL
   const client = axios.create({ baseURL: address, timeout, withCredentials: false })
   client.interceptors.request.use(config => {
-    const publico = ['/login', '/cadastro', '/register'].includes(config.url)
+    const publico = ['/login', '/cadastro', '/register', '/recuperar-senha', '/redefinir-senha'].includes(config.url)
     const token = obterToken()
     if (token && !publico) config.headers.set('Authorization', 'Bearer ' + token)
     return config

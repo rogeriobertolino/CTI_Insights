@@ -63,6 +63,8 @@ public class SecurityConfig {
                     "/api/auth/cadastro",
                     "/api/auth/register",
                     "/api/auth/login",
+                    "/api/auth/recuperar-senha",
+                    "/api/auth/redefinir-senha",
                     "/actuator/health",
                     "/error")
                 .permitAll()

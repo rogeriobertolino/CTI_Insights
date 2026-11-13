@@ -1,10 +1,40 @@
 # Ciência de dados do CTI Insights
 
+## Adaptações ao material da aula
+
+Ambiente corrigido em 12/11/2026: pandas 2.3.3 e SciPy 1.16.3 no `.venv-analytics`. Os 10 testes do ETL passaram e o Uvicorn respondeu HTTP 200 em `/saude`. Para iniciar na raiz sem ativar o ambiente: `.\.venv-analytics\Scripts\python.exe -m uvicorn api:app --app-dir analytics-python --port 8000`. O instalador valida as importações com limite de 120 segundos para diagnosticar bloqueios de bibliotecas nativas.
+
+O resultado mantém os campos anteriores e inclui `resumo.totalClientes`, `resumo.faturamentoTotal`, indicadores adicionais e `qualidade`. `porMes` conta clientes, preenche meses vazios e traz faturamento, acumulado e contratos separados. Lotes já processados não são recalculados automaticamente: envie novamente a planilha para obter os novos indicadores.
+
+O Spring continua criando o lote e enviando `loteId`. O POST `/etl` também aceita omitir o ID, criando um lote pendente antes de reservá-lo. O POST `/testar` retorna os indicadores diretamente e no campo `resultado`, para manter compatibilidade com os dois formatos.
+
+Para instalar usando um interpretador específico: `powershell -NoProfile -ExecutionPolicy RemoteSigned -File scripts/setup-analytics.ps1 -PythonExecutable C:\caminho\python.exe` (na raiz). O inicializador prefere `.venv-analytics` quando esse ambiente existe.
+
+No Docker Compose, preencha `JWT_SECRET_BASE64` e `ETL_API_KEY` no `.env` e execute `docker compose up --build`. O serviço `analytics` usa o mesmo PostgreSQL do backend. No Render, preencha `ETL_URL` no backend com a URL do serviço `cti-insights-etl` seguida de `/etl`; configure a mesma `ETL_API_KEY` nos dois serviços. O backend usa URL JDBC; o Python usa `postgresql://...` com SSL exigido pelo provedor. Esses arquivos não publicam os serviços por conta própria.
+
+Referências de implementação: [série de períodos no pandas](https://pandas.pydata.org/docs/reference/api/pandas.period_range.html) e [ordem de inicialização no Compose](https://docs.docker.com/compose/how-tos/startup-order/).
+
+## Serviço ETL da Aula 12 (FastAPI)
+
+| Arquivo | Papel |
+|---|---|
+| `api.py` | FastAPI: `GET /saude`, `POST /etl` (Spring, exige `X-ETL-Key`), `POST /testar` (não grava), `GET /lotes`. |
+| `main.py` | `processar_lote`: reservar → tratar → calcular → gravar; erro marca o lote como `ERRO`. |
+| `limpeza.py` | `tratar(bruto)`, `titulo`, `padronizar_segmento`, `padronizar_servicos`, `parse_numero`, `parse_data`, `ResultadoTransformacao`. |
+| `analise.py` | `calcular`: resumo (média, mediana, desvio, quartis), por segmento/nível/consultor/serviço/mês, top 5, moda, correlação, Shapiro-Wilk e Qui-quadrado. |
+| `insights.py` | `gerar_insights`, `brl`, `_virg`: as frases do dashboard. |
+| `banco.py` / `config.py` | SQLAlchemy + psycopg; lê o `.env` (`DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_SSLMODE`, `ETL_API_KEY`). |
+| `testar_conexao.py` | Mostra "Conectou!" se o banco do `.env` responde. |
+| `amostras/clientes.json` | Corpo de exemplo para `POST /testar` em `http://localhost:8000/docs`. |
+| `../tests/analytics/test_etl.py` | `python -m unittest discover -s tests/analytics` na raiz (sem banco). |
+
+Ligue com `uvicorn api:app --port 8000` dentro desta pasta, com o `.venv` ativo. O passo a passo completo está no README da raiz. O restante deste documento descreve a análise independente (`analise_cti.py`) e o fluxo anterior.
+
 Implementação do guia de ETL, integrada ao backend e ao dashboard. A pasta `python/` mantém a entrada JSON chamada pelo Spring Boot. Os módulos desta pasta fazem limpeza, validação, estatística, gráficos e insights. A leitura usa openpyxl e a limpeza usa pandas. As dependências compartilhadas ficam em `python/requirements.txt`, incluído pelo arquivo de dependências deste módulo. SciPy executa os testes estatísticos e Matplotlib exporta PNG.
 
 ## Executar no Windows
 
-Recomendado Python 3.12, com ambiente científico isolado do OneDrive:
+Use Python 3.11 ou superior. O ambiente `.venv-analytics` fica na raiz do projeto e é ignorado pelo Git:
 
 ```powershell
 npm run setup:analytics

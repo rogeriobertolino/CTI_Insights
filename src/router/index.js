@@ -3,6 +3,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import { useAuthStore } from '../stores/auth.js'
 import LoginView from '../views/LoginView.vue'
+import RecuperarSenhaView from '../views/RecuperarSenhaView.vue'
+import RedefinirSenhaView from '../views/RedefinirSenhaView.vue'
 import AppLayout from '../layouts/AppLayout.vue'
 
 const UploadView = () => import('../views/UploadView.vue')
@@ -19,6 +21,16 @@ const routes = [
     path: '/login',
     name: 'login',
     component: LoginView,
+  },
+  {
+    path: '/recuperar-senha',
+    name: 'recuperar-senha',
+    component: RecuperarSenhaView,
+  },
+  {
+    path: '/redefinir-senha',
+    name: 'redefinir-senha',
+    component: RedefinirSenhaView,
   },
   {
     path: '/cadastro',
@@ -38,6 +50,8 @@ const routes = [
       { path: 'graficos', name: 'graficos', component: GraficosView },
       { path: 'importacao-servidor', name: 'importacao-servidor', component: () => import('../views/ImportacaoServidorView.vue') },
       { path: 'registros-servidor', name: 'registros-servidor', component: () => import('../views/RelatorioServidorView.vue') },
+      { path: 'conta/senha', name: 'alterar-senha', component: () => import('../views/AlterarSenhaView.vue') },
+      { path: 'dashboard', name: 'dashboard-etl', component: () => import('../views/DashboardView.vue') },
     ],
   },
   {
@@ -52,7 +66,7 @@ const router = createRouter({
 })
 
 router.beforeEach(async to => {
-  if (!to.meta.requiresAdmin && !['graficos', 'registros-servidor', 'historico-importacoes'].includes(to.name)) return true
+  if (!to.meta.requiresAdmin && !['graficos', 'registros-servidor', 'historico-importacoes', 'alterar-senha', 'dashboard-etl'].includes(to.name)) return true
   const auth = useAuthStore()
   await auth.restaurarSessao()
   if (!auth.usuario) return { name: 'login' }

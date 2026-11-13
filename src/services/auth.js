@@ -20,6 +20,15 @@ export async function entrar(email, senha) {
   salvarToken(data.token)
   return data.usuario
 }
+export async function solicitarRedefinicaoSenha(email) {
+  return (await authClient.post('/recuperar-senha', { email: email.trim().toLowerCase() })).data
+}
+export async function redefinirSenha(token, senha) {
+  await authClient.post('/redefinir-senha', { token, senha })
+}
+export async function alterarSenha(senhaAtual, novaSenha) {
+  await authClient.post('/alterar-senha', { senhaAtual, novaSenha })
+}
 export async function usuarioAtual() {
   if (!obterToken()) return null
   return (await authClient.get('/me')).data

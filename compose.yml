@@ -17,6 +17,26 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+  analytics:
+    build:
+      context: .
+      dockerfile: analytics-python/Dockerfile.api
+    environment:
+      DB_HOST: postgres
+      DB_NAME: cti_insights
+      DB_USER: cti
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-cti_dev}
+      DB_SSLMODE: disable
+      ETL_API_KEY: ${ETL_API_KEY:?Configure ETL_API_KEY no arquivo .env}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/saude', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+    depends_on:
+      postgres:
+        condition: service_healthy
   backend:
     build:
       context: .
@@ -25,15 +45,28 @@ services:
       DATABASE_URL: jdbc:postgresql://postgres:5432/cti_insights
       DATABASE_USER: cti
       DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-cti_dev}
+      ETL_URL: http://analytics:8000/etl
+      ETL_API_KEY: ${ETL_API_KEY:?Configure ETL_API_KEY no arquivo .env}
       PYTHON_EXECUTABLE: python3
       PYTHON_SCRIPT: /app/python/analyze.py
       CORS_ORIGIN: http://localhost:5173
       JWT_SECRET_BASE64: ${JWT_SECRET_BASE64:?Configure JWT_SECRET_BASE64 no arquivo .env}
       JWT_EXPIRATION_SECONDS: ${JWT_EXPIRATION_SECONDS:-1800}
       JWT_ISSUER: ${JWT_ISSUER:-cti-insights}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_AUTH: ${SMTP_AUTH:-true}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+      SMTP_HEALTH_ENABLED: ${SMTP_HEALTH_ENABLED:-false}
+      MAIL_FROM: ${MAIL_FROM:-no-reply@cti-insights.local}
+      RESET_PASSWORD_URL: ${RESET_PASSWORD_URL:-http://localhost:5173/redefinir-senha}
     ports: ["8080:8080"]
     depends_on:
       postgres:
+        condition: service_healthy
+      analytics:
         condition: service_healthy
 volumes:
   postgres_data:

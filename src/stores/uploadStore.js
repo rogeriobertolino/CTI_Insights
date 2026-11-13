@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx'
 import { dataContrato } from '../utils/dataContrato.js'
 import { parseFaturamento } from '../utils/faturamento.js'
 import { enviarPlanilha } from '../services/analysis.js'
+import { enviarLinhasValidadas } from '../services/uploads.js'
 import { dataStore } from './dataStore.js'
 import { CAMPOS_ANUAIS, ehAnual, tratarAnual, validarAnual } from '../utils/planilhaAnual.js'
 
@@ -38,6 +39,9 @@ const SEGMENTOS = new Map([
   ['SAUDE', 'Saúde'], ['SAÚDE', 'Saúde'], ['VAREJO', 'Varejo'], ['COMERCIO', 'Comércio'], ['COMÉRCIO', 'Comércio'],
   ['SERVICOS', 'Serviços'], ['SERVIÇOS', 'Serviços'],
 ])
+// Formato da Aula 12 (sample-data/dados.xlsx): segue para o ETL em Python via JSON.
+const OBRIGATORIAS_ETL = ['codigo', 'nome', 'consultor', 'segmento', 'nivel', 'faturamento', 'servicos_contratados', 'data_contratacao']
+export const ehFormatoEtl = (cabecalhos) => cabecalhos.includes('servicos_contratados') && cabecalhos.includes('data_contratacao')
 const STATUS = new Map([['ativo', 'Ativo'], ['inativo', 'Inativo'], ['pendente', 'Pendente']])
 // Uma versão por store impede uma leitura antiga de substituir uma importação nova.
 const versoes = new WeakMap()
@@ -101,7 +105,7 @@ function lerAba(workbook) {
   }
   const baseComercial = OBRIGATORIAS_BASE_COMERCIAL.every((coluna) => cabecalhos.includes(coluna))
   const contratos = ['valor_servico', 'status_contrato', 'data_inicio'].some(c => cabecalhos.includes(c))
-  const obrigatorias = ehAnual(cabecalhos) ? CAMPOS_ANUAIS : contratos ? ['codigo', 'nome', 'consultor', 'segmento', 'nivel', 'faturamento', 'servico', 'valor_servico', 'status_contrato', 'data_inicio'] : baseComercial ? OBRIGATORIAS_BASE_COMERCIAL : OBRIGATORIAS
+  const obrigatorias = ehAnual(cabecalhos) ? CAMPOS_ANUAIS : ehFormatoEtl(cabecalhos) ? OBRIGATORIAS_ETL : contratos ? ['codigo', 'nome', 'consultor', 'segmento', 'nivel', 'faturamento', 'servico', 'valor_servico', 'status_contrato', 'data_inicio'] : baseComercial ? OBRIGATORIAS_BASE_COMERCIAL : OBRIGATORIAS
   const ausentes = obrigatorias.filter((coluna) => !cabecalhos.includes(coluna))
   if (ausentes.length) throw new Error(`Colunas obrigatórias ausentes: ${ausentes.join(', ')}. Utilize o modelo disponível na tela de upload.`)
   const registros = []
@@ -306,6 +310,32 @@ export const useUploadStore = defineStore('upload', {
       return new File([bytes], `${this.nomeArquivo.replace(/\.(xlsx|xls|csv)$/i, '')}-validado.xlsx`, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
     },
 
+    // JSON de POST /api/uploads/validadas: valores como vieram da planilha (o Python padroniza).
+    prepararPedidoEtl() {
+      const validos = this.registrosValidos
+      if (!validos.length) throw new Error('Nenhum registro válido para enviar. Corrija a planilha e valide novamente.')
+      const avisos = new Set(this.avisos.filter(a => !this.erros.some(e => e.linha === a.linha)).map(a => a.linha))
+      return {
+        arquivoNome: this.nomeArquivo,
+        recebidas: this.totalRegistros,
+        invalidas: this.totalComErro,
+        comAviso: avisos.size,
+        linhas: validos.map(({ linha, dados }) => ({
+          linha,
+          codigoCliente: semEspacosExtras(dados.codigo),
+          nomeCliente: semEspacosExtras(dados.nome),
+          consultor: semEspacosExtras(dados.consultor),
+          segmento: semEspacosExtras(dados.segmento),
+          nivelCliente: semEspacosExtras(dados.nivel),
+          faturamentoAnual: parseFaturamento(dados.faturamento),
+          servicosContratados: semEspacosExtras(dados.servicos_contratados),
+          dataContratacao: dataContrato(dados.data_contratacao),
+          cidade: semEspacosExtras(dados.cidade) || null,
+          uf: semEspacosExtras(dados.uf) || null,
+        })),
+      }
+    },
+
     async enviarDados() {
       if (this.enviando) return null
       this.erroEnvio = ''
@@ -313,6 +343,12 @@ export const useUploadStore = defineStore('upload', {
       const versao = versoes.get(this)
       this.enviando = true
       try {
+        if (ehFormatoEtl(this.cabecalhos)) {
+          const resultado = await enviarLinhasValidadas(this.prepararPedidoEtl())
+          if (versoes.get(this) !== versao) return null
+          this.analiseSalva = { ...resultado, etl: true }
+          return this.analiseSalva
+        }
         const resultado = await enviarPlanilha(this.prepararArquivoEnvio(), { linhasRecebidas: this.totalRegistros, linhasDescartadas: this.totalComErro, linhasComAviso: new Set(this.avisos.filter(a => !this.erros.some(e => e.linha === a.linha)).map(a => a.linha)).size })
         if (versoes.get(this) !== versao) return null
         this.analiseSalva = resultado
@@ -341,7 +377,10 @@ export const useUploadStore = defineStore('upload', {
       const erros = []
       const porCodigo = new Map()
       const contratos = ['valor_servico', 'status_contrato', 'data_inicio'].some(c => this.cabecalhos.includes(c))
-      const camposObrigatorios = contratos ? ['codigo', 'nome', 'consultor', 'segmento', 'nivel', 'faturamento', 'servico', 'valor_servico', 'status_contrato', 'data_inicio'] : this.cabecalhos.includes('segmento')
+      const etl = ehFormatoEtl(this.cabecalhos)
+      // No formato do ETL, espaços e maiúsculas são corrigidos pelo Python: não excluem a linha.
+      const tolerante = contratos || etl
+      const camposObrigatorios = etl ? OBRIGATORIAS_ETL : contratos ? ['codigo', 'nome', 'consultor', 'segmento', 'nivel', 'faturamento', 'servico', 'valor_servico', 'status_contrato', 'data_inicio'] : this.cabecalhos.includes('segmento')
         ? OBRIGATORIAS_BASE_COMERCIAL
         : OBRIGATORIAS
       const registrar = (registro, campo, tipo, descricao, sugestao) => {
@@ -358,7 +397,7 @@ export const useUploadStore = defineStore('upload', {
           if (['faturamento', 'valor_servico'].includes(campo) && typeof original === 'number') continue
           const valor = texto(original)
           const limpo = semEspacosExtras(valor)
-          if (!contratos && valor !== limpo) registrar(registro, campo, 'espacos', 'Remova espaços no início/fim, repetições, tabulações ou quebras de linha.', limpo)
+          if (!tolerante && valor !== limpo) registrar(registro, campo, 'espacos', 'Remova espaços no início/fim, repetições, tabulações ou quebras de linha.', limpo)
         }
         if (contratos) {
           const valor = parseFaturamento(dados.valor_servico)
@@ -367,6 +406,7 @@ export const useUploadStore = defineStore('upload', {
           if (!['ATIVO', 'PENDENTE', 'CANCELADO'].includes(statusContrato)) registrar(registro, 'status_contrato', 'fora_padrao', 'Use ATIVO, PENDENTE ou CANCELADO.')
           if (!dataContrato(dados.data_inicio)) registrar(registro, 'data_inicio', 'fora_padrao', 'Informe uma data válida no formato AAAA-MM-DD ou DD/MM/AAAA.')
         }
+        if (etl && texto(dados.data_contratacao).trim() && !dataContrato(dados.data_contratacao)) registrar(registro, 'data_contratacao', 'fora_padrao', 'Informe uma data válida no formato AAAA-MM-DD ou DD/MM/AAAA.')
         if (this.cabecalhos.includes('faturamento')) {
           const receita = parseFaturamento(dados.faturamento)
           if (receita === null || receita < 0 || receita >= 1e13 || Math.abs(receita * 100 - Math.round(receita * 100)) > 0.00001) registrar(registro, 'faturamento', 'fora_padrao', 'Informe um faturamento numérico não negativo.')
@@ -395,7 +435,7 @@ export const useUploadStore = defineStore('upload', {
             registrar(registro, 'nome', 'fora_padrao', 'O nome deve conter letras; espaços, apóstrofos, pontos e hífens são permitidos.')
           }
           const letras = nome.match(/\p{L}/gu) || []
-          if (!contratos && letras.length > 1 && (nome === nome.toLocaleUpperCase('pt-BR') || nome === nome.toLocaleLowerCase('pt-BR'))) {
+          if (!tolerante && letras.length > 1 && (nome === nome.toLocaleUpperCase('pt-BR') || nome === nome.toLocaleLowerCase('pt-BR'))) {
             registrar(registro, 'nome', 'padronizacao', 'Revise o nome escrito inteiramente em maiúsculas ou minúsculas. A sugestão não altera os dados.', sugestaoNome(nome))
           }
         }
@@ -409,14 +449,16 @@ export const useUploadStore = defineStore('upload', {
         if (nivel) {
           const canonico = nivel.toLocaleUpperCase('pt-BR')
           if (!['A', 'B', 'C'].includes(canonico)) registrar(registro, 'nivel', 'fora_padrao', 'Os valores permitidos para nível são A, B ou C.')
-          else if (!contratos && nivel !== canonico) registrar(registro, 'nivel', 'padronizacao', 'Padronize o nível com letra maiúscula: A, B ou C.', canonico)
+          else if (!tolerante && nivel !== canonico) registrar(registro, 'nivel', 'padronizacao', 'Padronize o nível com letra maiúscula: A, B ou C.', canonico)
         }
       }
       for (const grupo of porCodigo.values()) {
         if (grupo.length < 2) continue
         const linhas = grupo.slice(0, 10).map((registro) => registro.linha).join(', ')
           + (grupo.length > 10 ? ` e mais ${grupo.length - 10} linhas` : '')
-        for (const registro of grupo) registrar(registro, 'codigo', 'duplicado', `Código repetido nas linhas ${linhas}. A comparação ignora maiúsculas/minúsculas e espaços extras.`)
+        // No ETL vale a primeira ocorrência; nos demais formatos todas ficam suspeitas.
+        if (etl) for (const registro of grupo.slice(1)) registrar(registro, 'codigo', 'duplicado', `Código já usado na linha ${grupo[0].linha}; a primeira ocorrência é mantida.`)
+        else for (const registro of grupo) registrar(registro, 'codigo', 'duplicado', `Código repetido nas linhas ${linhas}. A comparação ignora maiúsculas/minúsculas e espaços extras.`)
       }
       this.erros = erros.sort((a, b) => a.linha - b.linha)
       this.tratarDados()

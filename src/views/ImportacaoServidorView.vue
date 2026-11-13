@@ -31,7 +31,16 @@ async function importar() {
       <p v-if="!auth.usuario" class="validation-copy">Para importar, <RouterLink to="/login">entre na sua conta</RouterLink>. Após entrar, retorne à Importação integrada pelo menu.</p>
       <p v-if="store.erroEnvio" class="validation-alert" role="alert">{{ store.erroEnvio }}</p>
       <p v-if="store.enviando" role="status">Importando registros e gerando a análise…</p>
-      <div v-if="store.analiseSalva" role="status">
+      <div v-if="store.analiseSalva?.etl" role="status">
+        <p v-if="store.analiseSalva.lote.status === 'PROCESSADO'">Lote {{ store.analiseSalva.lote.id }} processado pelo Python: {{ store.analiseSalva.lote.linhasValidas - store.analiseSalva.lote.linhasRejeitadasEtl }} clientes gravados no banco.</p>
+        <p v-else class="validation-alert" role="alert">Lote {{ store.analiseSalva.lote.id }} com status {{ store.analiseSalva.lote.status }}: {{ store.analiseSalva.lote.mensagem || 'sem detalhes.' }}</p>
+        <details v-if="store.analiseSalva.rejeitadas.length">
+          <summary>{{ store.analiseSalva.rejeitadas.length }} linha(s) recusada(s) pelo servidor</summary>
+          <ul><li v-for="r in store.analiseSalva.rejeitadas" :key="r.linha">Linha {{ r.linha }} ({{ r.codigoCliente || 'sem código' }}): {{ r.motivos.join('; ') }}</li></ul>
+        </details>
+        <RouterLink v-if="store.analiseSalva.lote.status === 'PROCESSADO'" class="btn primary" :to="{ name: 'dashboard-etl', query: { loteId: store.analiseSalva.lote.id } }">Abrir dashboard do lote →</RouterLink>
+      </div>
+      <div v-else-if="store.analiseSalva" role="status">
         <p>Importação concluída. Lote: {{ store.analiseSalva.batchId }}.</p>
         <RouterLink class="btn primary" to="/app/graficos">Abrir dashboard →</RouterLink>
         <RouterLink class="btn outline" to="/app/registros-servidor">Consultar registros persistidos</RouterLink>

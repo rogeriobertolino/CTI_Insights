@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "vite",
     "start": "powershell -NoProfile -ExecutionPolicy RemoteSigned -File scripts/local.ps1 start",
+    "start:api": "powershell -NoProfile -ExecutionPolicy RemoteSigned -File scripts/local.ps1 start -SemFrontend",
     "stop": "powershell -NoProfile -ExecutionPolicy RemoteSigned -File scripts/local.ps1 stop",
     "status": "powershell -NoProfile -ExecutionPolicy RemoteSigned -File scripts/local.ps1 status",
     "build": "vite build",
